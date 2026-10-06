@@ -1,0 +1,22 @@
+{
+  "child": {
+    "name": "José",
+    "age": 2
+  },
+  "event": {
+    "date": "2026-11-28",
+    "displayDate": "28 de novembro",
+    "time": "16:00",
+    "displayTime": "16h",
+    "venue": "Condomínio Portal Riacho da Mata",
+    "address": "Rua Peroba Rosa, 429 - Riacho da Mata, Sarzedo - MG",
+    "country": "Brasil"
+  },
+  "theme": "safari-jungle",
+  "mobileFirst": true,
+  "pix": {
+    "mode": "manual-br-code-first",
+    "key": null,
+    "note": "A chave Pix real ainda não foi fornecida. Nunca inventar uma chave."
+  }
+}

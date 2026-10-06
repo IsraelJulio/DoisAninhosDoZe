@@ -1,0 +1,425 @@
+[
+  {
+    "path": "/assets/backgrounds/jungle-gifts.webp",
+    "file": "public/assets/backgrounds/jungle-gifts.webp",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "sha256_16": "6f88e7c043d64254"
+  },
+  {
+    "path": "/assets/backgrounds/jungle-home.webp",
+    "file": "public/assets/backgrounds/jungle-home.webp",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "sha256_16": "b43f2dbdea920bed"
+  },
+  {
+    "path": "/assets/backgrounds/jungle-payment.webp",
+    "file": "public/assets/backgrounds/jungle-payment.webp",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "sha256_16": "f0910be327fe6fa0"
+  },
+  {
+    "path": "/assets/backgrounds/jungle-soft.webp",
+    "file": "public/assets/backgrounds/jungle-soft.webp",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "sha256_16": "5a49c233027db3af"
+  },
+  {
+    "path": "/assets/backgrounds/jungle-splash.webp",
+    "file": "public/assets/backgrounds/jungle-splash.webp",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "sha256_16": "09a07e7b8c77652a"
+  },
+  {
+    "path": "/assets/brand/logo-jose-2-anos.png",
+    "file": "public/assets/brand/logo-jose-2-anos.png",
+    "dimensions": [
+      900,
+      520
+    ],
+    "sha256_16": "ede1e074927228ac"
+  },
+  {
+    "path": "/assets/decor/balloon-blue.png",
+    "file": "public/assets/decor/balloon-blue.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "4449c8907a8f1af1"
+  },
+  {
+    "path": "/assets/decor/balloon-green.png",
+    "file": "public/assets/decor/balloon-green.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "3ed80dfd1ceb676c"
+  },
+  {
+    "path": "/assets/decor/balloon-orange.png",
+    "file": "public/assets/decor/balloon-orange.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "63b405441fbc9292"
+  },
+  {
+    "path": "/assets/decor/cloud-01.png",
+    "file": "public/assets/decor/cloud-01.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "665e4fcac467e109"
+  },
+  {
+    "path": "/assets/decor/cloud-02.png",
+    "file": "public/assets/decor/cloud-02.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "dd7c61b8312778c0"
+  },
+  {
+    "path": "/assets/decor/confetti.png",
+    "file": "public/assets/decor/confetti.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "ba8914482dcb940e"
+  },
+  {
+    "path": "/assets/decor/fence.png",
+    "file": "public/assets/decor/fence.png",
+    "dimensions": [
+      420,
+      280
+    ],
+    "sha256_16": "586f52c956850685"
+  },
+  {
+    "path": "/assets/decor/grass-cluster.png",
+    "file": "public/assets/decor/grass-cluster.png",
+    "dimensions": [
+      420,
+      280
+    ],
+    "sha256_16": "afe2c0fdaedb9dfe"
+  },
+  {
+    "path": "/assets/decor/grass.png",
+    "file": "public/assets/decor/grass.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "4404ce6c0d18a483"
+  },
+  {
+    "path": "/assets/decor/leaf-01.png",
+    "file": "public/assets/decor/leaf-01.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "93782e11ca9a9733"
+  },
+  {
+    "path": "/assets/decor/leaf-02.png",
+    "file": "public/assets/decor/leaf-02.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "da99b54eb7131056"
+  },
+  {
+    "path": "/assets/decor/leaf-03.png",
+    "file": "public/assets/decor/leaf-03.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "12a914d9c17e0858"
+  },
+  {
+    "path": "/assets/decor/leaf-04.png",
+    "file": "public/assets/decor/leaf-04.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "262ba1b7ec1a6066"
+  },
+  {
+    "path": "/assets/decor/leaf-05.png",
+    "file": "public/assets/decor/leaf-05.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "1357fd7ed120db0e"
+  },
+  {
+    "path": "/assets/decor/mushrooms.png",
+    "file": "public/assets/decor/mushrooms.png",
+    "dimensions": [
+      420,
+      280
+    ],
+    "sha256_16": "1f7e13cdb330c016"
+  },
+  {
+    "path": "/assets/decor/paw.png",
+    "file": "public/assets/decor/paw.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "0d05bebdfd9a76b2"
+  },
+  {
+    "path": "/assets/decor/rocks.png",
+    "file": "public/assets/decor/rocks.png",
+    "dimensions": [
+      420,
+      280
+    ],
+    "sha256_16": "b2097d11fd030564"
+  },
+  {
+    "path": "/assets/decor/star-smile.png",
+    "file": "public/assets/decor/star-smile.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "932242d29361cbd5"
+  },
+  {
+    "path": "/assets/decor/star.png",
+    "file": "public/assets/decor/star.png",
+    "dimensions": [
+      320,
+      320
+    ],
+    "sha256_16": "2918219eea2a9640"
+  },
+  {
+    "path": "/assets/decor/tree-stump.png",
+    "file": "public/assets/decor/tree-stump.png",
+    "dimensions": [
+      420,
+      280
+    ],
+    "sha256_16": "e7d0241c9c9c5d0c"
+  },
+  {
+    "path": "/assets/decor/vine.png",
+    "file": "public/assets/decor/vine.png",
+    "dimensions": [
+      420,
+      280
+    ],
+    "sha256_16": "751ef8cd86b14c93"
+  },
+  {
+    "path": "/assets/illustrations/birthday-cake.png",
+    "file": "public/assets/illustrations/birthday-cake.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "f553f2c0c9a68e50"
+  },
+  {
+    "path": "/assets/illustrations/gift-stack.png",
+    "file": "public/assets/illustrations/gift-stack.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "28b02b2fffd956b3"
+  },
+  {
+    "path": "/assets/illustrations/location-sign.png",
+    "file": "public/assets/illustrations/location-sign.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "08cb7796ba1b7223"
+  },
+  {
+    "path": "/assets/illustrations/map-pin-card.png",
+    "file": "public/assets/illustrations/map-pin-card.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "e921a695be173faa"
+  },
+  {
+    "path": "/assets/illustrations/payment.png",
+    "file": "public/assets/illustrations/payment.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "795840b86ebec716"
+  },
+  {
+    "path": "/assets/illustrations/rsvp.png",
+    "file": "public/assets/illustrations/rsvp.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "7cf9965e43b75ddc"
+  },
+  {
+    "path": "/assets/illustrations/shopping.png",
+    "file": "public/assets/illustrations/shopping.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "f8ad5c35fc8daa21"
+  },
+  {
+    "path": "/assets/illustrations/success.png",
+    "file": "public/assets/illustrations/success.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "01664e19acf438ad"
+  },
+  {
+    "path": "/assets/jose/jose-avatar.webp",
+    "file": "public/assets/jose/jose-avatar.webp",
+    "dimensions": [
+      640,
+      640
+    ],
+    "sha256_16": "a3e057303f5ab6aa"
+  },
+  {
+    "path": "/assets/jose/jose-pointing-cutout.png",
+    "file": "public/assets/jose/jose-pointing-cutout.png",
+    "dimensions": [
+      667,
+      1230
+    ],
+    "sha256_16": "b9405fa67aeefb04"
+  },
+  {
+    "path": "/assets/jose/jose-pointing-source.webp",
+    "file": "public/assets/jose/jose-pointing-source.webp",
+    "dimensions": [
+      1200,
+      1600
+    ],
+    "sha256_16": "3f0d6361086c9e0c"
+  },
+  {
+    "path": "/assets/jose/jose-portrait.webp",
+    "file": "public/assets/jose/jose-portrait.webp",
+    "dimensions": [
+      1200,
+      1600
+    ],
+    "sha256_16": "871f50301cdcc4ae"
+  },
+  {
+    "path": "/assets/jose/jose-seated.webp",
+    "file": "public/assets/jose/jose-seated.webp",
+    "dimensions": [
+      1200,
+      1600
+    ],
+    "sha256_16": "073c904507172902"
+  },
+  {
+    "path": "/assets/mascots/elephant.png",
+    "file": "public/assets/mascots/elephant.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "69654af480496dc1"
+  },
+  {
+    "path": "/assets/mascots/giraffe.png",
+    "file": "public/assets/mascots/giraffe.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "70c4bcc23efa4ebe"
+  },
+  {
+    "path": "/assets/mascots/lion.png",
+    "file": "public/assets/mascots/lion.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "7e4959fd19421360"
+  },
+  {
+    "path": "/assets/mascots/monkey.png",
+    "file": "public/assets/mascots/monkey.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "5d92154ae6ce1d42"
+  },
+  {
+    "path": "/assets/mascots/toucan.png",
+    "file": "public/assets/mascots/toucan.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "5459d730dba6e7d6"
+  },
+  {
+    "path": "/assets/mascots/zebra.png",
+    "file": "public/assets/mascots/zebra.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "ef412b182346f762"
+  },
+  {
+    "path": "/assets/placeholders/gift-placeholder.png",
+    "file": "public/assets/placeholders/gift-placeholder.png",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sha256_16": "28b02b2fffd956b3"
+  }
+]

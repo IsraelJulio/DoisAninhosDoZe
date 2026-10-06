@@ -1,0 +1,28 @@
+{
+  "colors": {
+    "forest": "#168447",
+    "forestDark": "#0F5E35",
+    "leaf": "#2F9B52",
+    "cream": "#FFF4DE",
+    "sand": "#F2D3A0",
+    "wood": "#9B5C2E",
+    "woodDark": "#6B3A1F",
+    "orange": "#F59B2F",
+    "sky": "#CFEAF1",
+    "ink": "#33251D",
+    "success": "#1F9B55",
+    "warning": "#F2B83B",
+    "danger": "#E85B4B"
+  },
+  "radii": {
+    "card": 24,
+    "button": 18,
+    "pill": 999
+  },
+  "shadow": "0 12px 34px rgba(75, 46, 23, .14)",
+  "typography": {
+    "display": "Fredoka",
+    "body": "Nunito",
+    "implementation": "Use next/font/google; do not bundle font files."
+  }
+}
