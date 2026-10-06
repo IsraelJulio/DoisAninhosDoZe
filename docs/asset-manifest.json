@@ -363,28 +363,28 @@
     "path": "/assets/mascots/elephant.png",
     "file": "public/assets/mascots/elephant.png",
     "dimensions": [
-      512,
-      512
+      1024,
+      1024
     ],
-    "sha256_16": "69654af480496dc1"
+    "sha256_16": "b79b49761f5dad8c"
   },
   {
     "path": "/assets/mascots/giraffe.png",
     "file": "public/assets/mascots/giraffe.png",
     "dimensions": [
-      512,
-      512
+      1024,
+      1024
     ],
-    "sha256_16": "70c4bcc23efa4ebe"
+    "sha256_16": "c5e3b2219e5a9d21"
   },
   {
     "path": "/assets/mascots/lion.png",
     "file": "public/assets/mascots/lion.png",
     "dimensions": [
-      512,
-      512
+      1024,
+      1024
     ],
-    "sha256_16": "7e4959fd19421360"
+    "sha256_16": "8fea6c9a80d9af34"
   },
   {
     "path": "/assets/mascots/monkey.png",
@@ -399,19 +399,19 @@
     "path": "/assets/mascots/toucan.png",
     "file": "public/assets/mascots/toucan.png",
     "dimensions": [
-      512,
-      512
+      1024,
+      1024
     ],
-    "sha256_16": "5459d730dba6e7d6"
+    "sha256_16": "acf12b254e7fc6e5"
   },
   {
     "path": "/assets/mascots/zebra.png",
     "file": "public/assets/mascots/zebra.png",
     "dimensions": [
-      512,
-      512
+      1024,
+      1024
     ],
-    "sha256_16": "ef412b182346f762"
+    "sha256_16": "b17af0d656f8ca50"
   },
   {
     "path": "/assets/placeholders/gift-placeholder.png",

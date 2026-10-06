@@ -12,7 +12,8 @@ import { UnsafeUrlError } from "@/features/gifts/import/url-guard";
 import { EVENT_SLUG } from "@/features/orders/reservation-settings";
 import { cancelOrderByAdmin, confirmOrderPayment, resolveLatePaymentReport } from "@/features/payments/payment-service";
 import { getDb } from "@/server/db";
-import { enforceRateLimit, RateLimitError } from "@/server/rate-limit";
+import { recordAdminLoginResult } from "@/server/admin-login-rate-limit";
+import { enforceRateLimit, RateLimitError, getClientIp } from "@/server/rate-limit";
 import {
   clearAdminSession,
   requireAdmin,
@@ -26,17 +27,15 @@ import { getAdminCredentials } from "@/lib/env";
 const loginSchema = z.object({ username: z.string().trim().min(1).max(100), password: z.string().min(1).max(200) });
 
 export async function adminLoginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  try {
-    await enforceRateLimit("admin-login", 8, 15 * 60_000);
-  } catch (error) {
-    if (error instanceof RateLimitError) return { error: error.message };
-    throw error;
-  }
   if (!getAdminCredentials()) {
     return { error: "Admin não configurado: defina ADMIN_USERNAME e ADMIN_PASSWORD nas variáveis de ambiente." };
   }
   const parsed = loginSchema.safeParse({ username: formData.get("username"), password: formData.get("password") });
-  if (!parsed.success || !verifyAdminCredentials(parsed.data.username, parsed.data.password)) {
+  const username = parsed.success ? parsed.data.username : String(formData.get("username") ?? "").slice(0, 100);
+  const credentialsValid = parsed.success && verifyAdminCredentials(parsed.data.username, parsed.data.password);
+  const result = await recordAdminLoginResult(getDb(), username, await getClientIp(), credentialsValid);
+  if (!credentialsValid || !result.allowed) {
+    if (!result.allowed) return { error: "Muitas tentativas. Aguarde 15 minutos e tente novamente." };
     return { error: "Usuário ou senha incorretos." };
   }
   await setAdminSession();

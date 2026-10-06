@@ -197,3 +197,28 @@ model AdminAuditLog {
 
   @@index([entityType, entityId])
 }
+
+model AdminLoginAttempt {
+  id              String    @id @default(cuid())
+  username        String
+  ip              String
+  failureCount    Int       @default(0)
+  windowStartedAt DateTime
+  blockedUntil    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([username, ip])
+  @@index([blockedUntil])
+  @@index([updatedAt])
+}
+
+model AdminSession {
+  id        String    @id
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  @@index([expiresAt])
+}

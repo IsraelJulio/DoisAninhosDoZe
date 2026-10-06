@@ -2,14 +2,14 @@
 // Em produção cria apenas o registro do evento — os presentes de exemplo só entram
 // em desenvolvimento ou com SEED_EXAMPLE_GIFTS=true.
 import "dotenv/config";
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import eventConfig from "../docs/event-config.json";
-
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error("DATABASE_URL não configurada");
-
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
+const eventConfig = JSON.parse(readFileSync(new URL("../docs/event-config.json", import.meta.url), "utf8")) as {
+  child: { name: string };
+  event: { date: string; time: string };
+};
 
 const PLACEHOLDER = "/assets/placeholders/gift-placeholder.png";
 
@@ -64,7 +64,7 @@ const exampleGifts = [
   },
 ];
 
-async function main() {
+export async function seedDatabase(prisma: PrismaClient, seedGifts: boolean) {
   const { child, event } = eventConfig;
   await prisma.event.upsert({
     where: { slug: "jose-2-anos" },
@@ -77,7 +77,6 @@ async function main() {
     },
   });
 
-  const seedGifts = process.env.NODE_ENV !== "production" || process.env.SEED_EXAMPLE_GIFTS === "true";
   if (!seedGifts) {
     console.log("Produção: apenas o evento foi criado (presentes de exemplo ignorados).");
     return;
@@ -93,9 +92,20 @@ async function main() {
   console.log(`Seed concluído: evento + ${exampleGifts.length} presentes de exemplo.`);
 }
 
-main()
-  .catch((error) => {
+async function main() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL não configurada");
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
+  try {
+    await seedDatabase(prisma, process.env.NODE_ENV !== "production" || process.env.SEED_EXAMPLE_GIFTS === "true");
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+  });
+}

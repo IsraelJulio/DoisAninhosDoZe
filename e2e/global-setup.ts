@@ -2,6 +2,7 @@ import "dotenv/config";
 import { execSync } from "node:child_process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { seedDatabase } from "../prisma/seed";
 
 /** Banco E2E limpo: migrations + seed de desenvolvimento. */
 export default async function globalSetup() {
@@ -11,8 +12,8 @@ export default async function globalSetup() {
   execSync("npx prisma migrate deploy", { env, stdio: "pipe" });
   const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
   await db.$executeRawUnsafe(
-    `TRUNCATE "AdminAuditLog", "Payment", "OrderItem", "Order", "CartItem", "Cart", "GiftImport", "Gift", "Rsvp", "Guest", "Event" RESTART IDENTITY CASCADE`,
+    `TRUNCATE "AdminSession", "AdminLoginAttempt", "AdminAuditLog", "Payment", "OrderItem", "Order", "CartItem", "Cart", "GiftImport", "Gift", "Rsvp", "Guest", "Event" RESTART IDENTITY CASCADE`,
   );
+  await seedDatabase(db, true);
   await db.$disconnect();
-  execSync("npx tsx prisma/seed.ts", { env, stdio: "pipe" });
 }

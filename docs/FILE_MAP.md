@@ -42,10 +42,10 @@ Use estes caminhos exatos:
 - `/assets/jose/jose-pointing-source.webp` — 1200×1600
 - `/assets/jose/jose-portrait.webp` — 1200×1600
 - `/assets/jose/jose-seated.webp` — 1200×1600
-- `/assets/mascots/elephant.png` — 512×512
-- `/assets/mascots/giraffe.png` — 512×512
-- `/assets/mascots/lion.png` — 512×512
+- `/assets/mascots/elephant.png` — 1024×1024
+- `/assets/mascots/giraffe.png` — 1024×1024
+- `/assets/mascots/lion.png` — 1024×1024
 - `/assets/mascots/monkey.png` — 512×512
-- `/assets/mascots/toucan.png` — 512×512
-- `/assets/mascots/zebra.png` — 512×512
+- `/assets/mascots/toucan.png` — 1024×1024
+- `/assets/mascots/zebra.png` — 1024×1024
 - `/assets/placeholders/gift-placeholder.png` — 512×512

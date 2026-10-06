@@ -29,7 +29,7 @@ export function createTestDb(): PrismaClient {
 
 export async function resetDb(db: PrismaClient) {
   await db.$executeRawUnsafe(
-    `TRUNCATE "AdminAuditLog", "Payment", "OrderItem", "Order", "CartItem", "Cart", "GiftImport", "Gift", "Rsvp", "Guest", "Event" RESTART IDENTITY CASCADE`,
+    `TRUNCATE "AdminSession", "AdminLoginAttempt", "AdminAuditLog", "Payment", "OrderItem", "Order", "CartItem", "Cart", "GiftImport", "Gift", "Rsvp", "Guest", "Event" RESTART IDENTITY CASCADE`,
   );
 }
 

@@ -22,7 +22,7 @@ describe("tokens assinados", () => {
   it("token de convidado não vale como admin", () => {
     const guestToken = createSignedToken({ sub: "admin" }, "guest-session", 60);
     expect(isAdminToken(guestToken)).toBe(false);
-    expect(isAdminToken(createSignedToken({ sub: "admin" }, "admin-session", 60))).toBe(true);
+    expect(isAdminToken(createSignedToken({ sub: "admin", sid: "session-1" }, "admin-session", 60))).toBe(true);
   });
 
   it("expira", () => {

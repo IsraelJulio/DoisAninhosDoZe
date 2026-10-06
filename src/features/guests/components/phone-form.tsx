@@ -28,7 +28,7 @@ export function PhoneForm({ next }: { next: string }) {
         )}
       >
         <span className="flex h-full items-center gap-1.5 border-r-2 border-line px-3 font-bold text-ink" aria-hidden>
-          <span className="rounded bg-forest px-1 text-[0.65rem] font-extrabold leading-4 text-warning">BR</span>
+          <span className="rounded bg-forest px-1 text-[0.65rem] font-extrabold leading-4 text-white">BR</span>
           +55
         </span>
         <input

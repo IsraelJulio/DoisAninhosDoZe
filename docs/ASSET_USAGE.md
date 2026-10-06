@@ -29,6 +29,10 @@
 
 Todos em `/assets/mascots/`.
 
+Lion, giraffe, zebra, toucan e elephant foram regenerados como PNG RGBA 1024×1024,
+com personagem isolado e safe area transparente. Devem ser renderizados diretamente,
+sem crop, mask ou fade de correção. O monkey permanece como asset legado com workaround.
+
 ## Decorações
 Usar com parcimônia e sempre como elementos não interativos:
 - folhas: `leaf-01.png` … `leaf-05.png`

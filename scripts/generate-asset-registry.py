@@ -20,13 +20,19 @@ OUT = ROOT / "src" / "lib" / "asset-registry.generated.ts"
 OVERRIDES = {
     "brand/logo-jose-2-anos.png": (304, 176, 546, 323),  # exclui um 2º logo cortado no canto
     "jose/jose-pointing-cutout.png": (15, 20, 500, 1210),  # exclui fragmento solto à direita
-    "mascots/elephant.png": (214, 212, 330, 331),  # exclui pedaço da girafa
-    "mascots/giraffe.png": (230, 173, 312, 326),  # exclui juba do leão à esquerda
-    "mascots/zebra.png": (240, 189, 314, 311),  # exclui orelha do elefante
-    "mascots/toucan.png": (222, 236, 298, 294),  # exclui rótulos "leao.png"/"elefante.png"
     "decor/paw.png": (140, 145, 192, 202),  # pegada inteira, sem o rótulo "grama_1.png"
     "decor/confetti.png": (110, 134, 213, 204),  # sem rótulos "sol.png"/"estrela.png"
     "illustrations/success.png": (206, 198, 316, 296),  # cone + confetes, sem rótulo
+}
+
+# Assets regenerados individualmente, com safe area transparente intencional. Eles não
+# precisam do crop legado usado para arquivos extraídos das pranchas antigas.
+DIRECT_ASSETS = {
+    "mascots/lion.png",
+    "mascots/giraffe.png",
+    "mascots/zebra.png",
+    "mascots/toucan.png",
+    "mascots/elephant.png",
 }
 ALPHA_THRESHOLD = 40
 PAD = 2
@@ -68,7 +74,9 @@ def main():
         key = path.relative_to(ASSETS).as_posix()
         img = Image.open(path)
         w, h = img.size
-        if key in OVERRIDES:
+        if key in DIRECT_ASSETS:
+            box = (0, 0, w, h)
+        elif key in OVERRIDES:
             box = OVERRIDES[key]
         elif img.mode == "RGBA":
             x0, y0, x1, y1 = largest_component_bbox(img)

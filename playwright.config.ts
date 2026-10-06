@@ -25,10 +25,10 @@ export default defineConfig({
   },
   projects: [{ name: "mobile-chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: `npm run build && npm run start -- --port ${PORT}`,
+    command: `npm run build && node node_modules/next/dist/bin/next start --port ${PORT}`,
     url: `http://localhost:${PORT}`,
     timeout: 300_000,
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
     env: {
       DATABASE_URL: E2E_DATABASE_URL,
       ADMIN_USERNAME: E2E_ADMIN.username,

@@ -9,11 +9,6 @@ type Edge = "left" | "right" | "top" | "bottom";
  * "caixa" sem modificar o arquivo.
  */
 const FADES: Partial<Record<keyof typeof ASSET_REGISTRY, Edge[]>> = {
-  "/assets/mascots/lion.png": ["left", "right", "bottom"],
-  "/assets/mascots/giraffe.png": ["left", "bottom"],
-  "/assets/mascots/zebra.png": ["left", "bottom"],
-  "/assets/mascots/toucan.png": ["right", "bottom"],
-  "/assets/mascots/elephant.png": ["top"],
   "/assets/mascots/monkey.png": ["right"],
 };
 

@@ -18,6 +18,11 @@
 7. Não renderizar textos importantes dentro de imagens.
 8. Não usar as fotos dos mockups como conteúdo final: usar os assets em `public/assets`.
 
+## Hardening administrativo
+- O login administrativo usa `AdminLoginAttempt` no PostgreSQL: 5 falhas bloqueiam a combinação de usuário normalizado + IP por 15 minutos.
+- Sessões administrativas duram 6 horas; o cookie recebe o token assinado e `AdminSession` armazena somente seu SHA-256.
+- Logout revoga a sessão no banco antes de remover o cookie.
+
 ## Z-index sugerido
 - background: 0
 - foliage/decor: 1

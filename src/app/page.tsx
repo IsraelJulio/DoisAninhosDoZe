@@ -23,12 +23,6 @@ export default function HomePage() {
           displayWidth={78}
           className="absolute left-4 top-3 z-[2] origin-top animate-sway"
         />
-        <AssetImage
-          src="/assets/mascots/toucan.png"
-          displayWidth={78}
-          className="absolute right-5 top-6 z-[2] animate-float"
-          style={{ animationDelay: "1.2s" }}
-        />
 
         <div className="absolute bottom-0 left-1/2 z-[5] h-[88%] w-[48%] max-w-[205px] -translate-x-1/2 overflow-hidden">
           <AssetImage
@@ -52,7 +46,6 @@ export default function HomePage() {
           className="absolute bottom-14 right-[1%] z-[3] animate-float"
           style={{ animationDelay: "2s" }}
         />
-        <AssetImage src="/assets/mascots/zebra.png" displayWidth={80} className="absolute bottom-0 right-[17%] z-[6]" />
       </section>
 
       {/* Logo sobre a base do hero */}
