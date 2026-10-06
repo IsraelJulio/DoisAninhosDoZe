@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import { assetFadeStyle } from "@/lib/asset-fades";
 import { ASSET_REGISTRY } from "@/lib/asset-registry.generated";
 import { cn } from "@/lib/cn";
 
@@ -28,11 +29,18 @@ export function AssetImage({ src, alt = "", displayWidth, className, style, prio
   const cropH = y1 - y0;
   const decorative = alt === "";
   const scale = meta.width / cropW;
+  // a imagem interna é absoluta: o wrapper precisa ser posicionado (relative, salvo se já for absolute)
+  const positioned = /(^|\s)(absolute|fixed)(\s|$)/.test(className ?? "");
 
   return (
     <span
-      className={cn("relative block shrink-0 overflow-hidden", decorative && "pointer-events-none select-none", className)}
-      style={{ width: displayWidth, aspectRatio: `${cropW} / ${cropH}`, ...style }}
+      className={cn(
+        "block shrink-0 overflow-hidden",
+        !positioned && "relative",
+        decorative && "pointer-events-none select-none",
+        className,
+      )}
+      style={{ width: displayWidth, aspectRatio: `${cropW} / ${cropH}`, ...assetFadeStyle(src), ...style }}
       aria-hidden={decorative || undefined}
     >
       <Image
