@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/server/session/admin-session";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Pencil, Plus } from "lucide-react";
@@ -14,6 +15,7 @@ import { getDb } from "@/server/db";
 export const metadata: Metadata = { title: "Presentes" };
 
 export default async function AdminGiftsPage({ searchParams }: PageProps<"/admin/presentes">) {
+  await requireAdmin(); // defesa em profundidade: não depender só do layout/proxy
   const params = await searchParams;
   const gifts = await listGiftsForAdmin(getDb());
 

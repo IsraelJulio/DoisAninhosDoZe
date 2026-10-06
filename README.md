@@ -73,7 +73,7 @@ npm run dev                 # http://localhost:3000  (admin: /admin/login)
 `npm run db:local` usa os binários oficiais do PostgreSQL distribuídos pelo pacote `embedded-postgres` (só dev) e cria os bancos `jose`, `jose_test` e `jose_e2e` na porta 54329:
 
 ```
-DATABASE_URL="postgresql://postgres:postgres@localhost:54329/jose?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:54329/jose?schema=public" 
 TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:54329/jose_test?schema=public"
 E2E_DATABASE_URL="postgresql://postgres:postgres@localhost:54329/jose_e2e?schema=public"
 ```
@@ -89,7 +89,7 @@ Use `node scripts/local-postgres.mjs --detach` para deixá-lo rodando em segundo
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint` | ESLint (flat config do Next) |
 | `npm run typecheck` | `next typegen` + `tsc --noEmit` |
-| `npm test` | Vitest: unitários + integração (integração é pulada sem `TEST_DATABASE_URL`) |
+| `npm test` | Vitest: unitários + integração (integração é pulada sem `TEST_DATABASE_URL`, que precisa ser um banco diferente de `DATABASE_URL`: os testes apagam dados) |
 | `npm run test:e2e` | Playwright (faz build de produção e sobe na porta 3100 com `E2E_DATABASE_URL`) |
 | `npm run db:migrate` | `prisma migrate dev` (cria nova migration em dev) |
 | `npm run db:deploy` | `prisma migrate deploy` (aplica migrations, uso em produção) |
@@ -138,6 +138,9 @@ RESERVED ──"Já fiz o pagamento" (dentro do prazo)──▶ AWAITING_PAYMENT
 - A disponibilidade conta pedidos `PURCHASED` + `AWAITING_PAYMENT_CONFIRMATION` + `RESERVED` com `reservationExpiresAt > agora`. Reservas vencidas deixam de contar na hora (expiração "preguiçosa", sem cron).
 - O "Já fiz o pagamento" é um `UPDATE` condicional (`status = RESERVED AND reservationExpiresAt > agora`). Quem decide o prazo é o servidor; o contador da tela é só apresentação.
 - Depois de informado, o pagamento **não expira**: só o admin confirma ou cancela.
+- Operações do mesmo convidado (clique duplo, duas abas, renovação × "já paguei") são serializadas por um advisory lock por convidado, sempre tomado antes das travas dos presentes, o que evita deadlocks. Reenviar o checkout com o carrinho vazio devolve a reserva ativa (idempotente).
+- "Já fiz o pagamento" **depois** do prazo: se os presentes continuam livres, a reserva é reativada. Se já foram para outra pessoa, nada é vendido em dobro: o aviso fica registrado e aparece em **Admin → Pagamentos → Pendentes** como "Pix informado depois que a reserva expirou", para o admin devolver o valor ou combinar outro presente e marcar como resolvido.
+- Confirmar e cancelar no admin são idempotentes (clique duplo não duplica auditoria nem gera erro). Já o estoque não pode ser reduzido abaixo das unidades reservadas ou presenteadas.
 - Preço e total sempre vêm do banco. O navegador envia apenas `giftId` e quantidade.
 - Teste: `tests/integration/reservations.test.ts` dispara duas reservas simultâneas do último item (10 rodadas) e 6 compradores para estoque 3. Validado também removendo o `FOR UPDATE`: os testes falham, como esperado.
 
@@ -184,8 +187,8 @@ Os mockups em `design/reference/mockups/` são só referência de layout e não 
 ## Testes
 
 ```bash
-npm test                     # 145 testes (unitários + integração com Postgres real)
-npm run test:e2e             # 13 testes Playwright
+npm test                     # 200 testes (unitários + integração com Postgres real)
+npm run test:e2e             # 16 testes Playwright
 ```
 
 - **Unitários:** telefone, dinheiro, BR Code e CRC16, totais, máquina de estados e expiração, disponibilidade, schemas (RSVP, presente), tokens assinados, proteção SSRF, extração de metadados, tokens de design ↔ CSS.

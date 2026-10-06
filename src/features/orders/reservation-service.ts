@@ -3,7 +3,7 @@ import { computeTotals } from "@/features/cart/cart-totals";
 import { computeGiftAvailability } from "@/features/gifts/gift-availability";
 import { getGiftHolds } from "@/features/gifts/gift-holds";
 import { DomainError } from "@/lib/domain-error";
-import type { Db } from "@/server/db";
+import type { Db, Tx } from "@/server/db";
 import { generatePixTxid } from "./txid";
 
 export interface UnavailableItem {
@@ -23,16 +23,41 @@ interface LockedGift {
 }
 
 /**
+ * Serializa as operações de pedido de UM convidado (clique duplo, duas abas, renovação x
+ * "já paguei"). É sempre a primeira trava da transação: a ordem fixa convidado → presentes
+ * elimina deadlocks entre essas operações.
+ */
+async function lockGuest(tx: Tx, guestId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${guestId}, 0))`;
+}
+
+/** Trava as linhas dos presentes (ordem de id) e calcula a disponibilidade já com a trava. */
+async function lockGiftsWithAvailability(tx: Tx, giftIds: string[], now: Date) {
+  const ids = [...new Set(giftIds)].sort();
+  const locked = await tx.$queryRaw<LockedGift[]>`
+    SELECT id, title, "imageUrl", "priceInCents", "stockQuantity", active
+    FROM "Gift"
+    WHERE id = ANY(${ids}::text[])
+    ORDER BY id
+    FOR UPDATE`;
+  const holds = await getGiftHolds(tx, now, ids);
+  return new Map(locked.map((g) => [g.id, { gift: g, available: computeGiftAvailability(g, holds.get(g.id)).available }]));
+}
+
+const ORDER_INCLUDE = { items: true, payment: true } as const;
+
+/**
  * Cria uma reserva temporária a partir do carrinho do convidado.
  *
- * Concorrência: dentro de UMA transação, travamos as linhas dos presentes envolvidos com
- * SELECT ... FOR UPDATE (sempre em ordem de id, evitando deadlock). Uma segunda transação que
- * queira os mesmos presentes espera o commit da primeira e, ao recalcular as reservas, já
- * enxerga o pedido recém-criado — então duas pessoas nunca reservam a mesma última unidade.
+ * Concorrência:
+ *  - trava por convidado (advisory lock) → clique duplo/duas abas não criam pedidos duplicados;
+ *  - SELECT ... FOR UPDATE nas linhas dos presentes (ordem de id) → uma segunda transação que
+ *    queira os mesmos presentes espera o commit da primeira e já enxerga o pedido criado, então
+ *    duas pessoas nunca reservam a mesma última unidade.
  *
+ * Idempotente: com o carrinho vazio e uma reserva ativa, devolve a reserva existente.
+ * Se havia reserva ativa e o carrinho tem itens novos, a reserva é renovada com tudo junto.
  * Preços e total vêm exclusivamente do banco.
- * Se o convidado já tinha uma reserva ativa, ela é desfeita e seus itens entram na nova
- * (tudo na mesma transação).
  */
 export async function createReservationFromCart(
   db: Db,
@@ -41,12 +66,22 @@ export async function createReservationFromCart(
 ) {
   return db.$transaction(
     async (tx) => {
-      // 1. Reserva ativa anterior volta para o carrinho (renovação da reserva)
-      const previous = await tx.order.findMany({
+      await lockGuest(tx, guestId);
+
+      const cart = await tx.cart.findUnique({ where: { guestId }, include: { items: true } });
+      const active = await tx.order.findMany({
         where: { guestId, status: "RESERVED", reservationExpiresAt: { gt: now } },
-        include: { items: true },
+        include: ORDER_INCLUDE,
+        orderBy: { createdAt: "desc" },
       });
-      for (const order of previous) {
+
+      if (!cart || cart.items.length === 0) {
+        if (active[0]) return active[0]; // segundo clique / refresh: a mesma reserva
+        throw new DomainError("EMPTY_CART", "Seu carrinho está vazio.");
+      }
+
+      // Renovação: reservas ativas anteriores voltam ao carrinho e entram no novo pedido
+      for (const order of active) {
         const changed = await tx.order.updateMany({
           where: { id: order.id, status: "RESERVED" },
           data: { status: "CANCELLED", cancelledAt: now },
@@ -56,50 +91,37 @@ export async function createReservationFromCart(
           await returnItemsToCart(tx, guestId, order.items);
         }
       }
+      const items = active.length ? await tx.cartItem.findMany({ where: { cartId: cart.id } }) : cart.items;
 
-      // 2. Itens do carrinho
-      const cart = await tx.cart.findUnique({ where: { guestId }, include: { items: true } });
-      const items = cart?.items ?? [];
-      if (!cart || items.length === 0) throw new DomainError("EMPTY_CART", "Seu carrinho está vazio.");
-
-      // 3. Trava as linhas dos presentes (ordem determinística)
-      const giftIds = [...new Set(items.map((i) => i.giftId))].sort();
-      const locked = await tx.$queryRaw<LockedGift[]>`
-        SELECT id, title, "imageUrl", "priceInCents", "stockQuantity", active
-        FROM "Gift"
-        WHERE id = ANY(${giftIds}::text[])
-        ORDER BY id
-        FOR UPDATE`;
-      const giftsById = new Map(locked.map((g) => [g.id, g]));
-
-      // 4. Disponibilidade calculada já com as travas adquiridas
-      const holds = await getGiftHolds(tx, now, giftIds);
+      const giftsById = await lockGiftsWithAvailability(tx, items.map((i) => i.giftId), now);
       const unavailable: UnavailableItem[] = [];
       for (const item of items) {
-        const gift = giftsById.get(item.giftId);
-        const available = gift ? computeGiftAvailability(gift, holds.get(item.giftId)).available : 0;
-        if (!gift || available < item.quantity) {
-          unavailable.push({ giftId: item.giftId, title: gift?.title ?? "Presente", requested: item.quantity, available });
+        const entry = giftsById.get(item.giftId);
+        if (!entry || !entry.gift.active || entry.available < item.quantity) {
+          unavailable.push({
+            giftId: item.giftId,
+            title: entry?.gift.title ?? "Presente",
+            requested: item.quantity,
+            available: entry?.available ?? 0,
+          });
         }
       }
       if (unavailable.length) {
         throw new DomainError(
           "UNAVAILABLE",
           unavailable.length === 1
-            ? `Ops! "${unavailable[0]!.title}" acabou de ser reservado por outra pessoa.`
-            : "Ops! Alguns presentes acabaram de ser reservados por outras pessoas.",
+            ? `Ops! "${unavailable[0]!.title}" não está mais disponível nessa quantidade.`
+            : "Ops! Alguns presentes não estão mais disponíveis nessa quantidade.",
           unavailable,
         );
       }
 
-      // 5. Totais a partir dos preços do banco
       const lines = items.map((item) => {
-        const gift = giftsById.get(item.giftId)!;
+        const { gift } = giftsById.get(item.giftId)!;
         return { gift, quantity: item.quantity, unitPriceInCents: gift.priceInCents };
       });
       const totals = computeTotals(lines);
 
-      // 6. Pedido + pagamento pendente
       const order = await tx.order.create({
         data: {
           guestId,
@@ -119,49 +141,79 @@ export async function createReservationFromCart(
           },
           payment: { create: { method: "PIX", status: "PENDING", amountInCents: totals.totalInCents } },
         },
-        include: { items: true, payment: true },
+        include: ORDER_INCLUDE,
       });
 
-      // 7. Carrinho esvaziado
-      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      // Remove só os itens que entraram no pedido (um item adicionado em paralelo não se perde)
+      await tx.cartItem.deleteMany({ where: { id: { in: items.map((i) => i.id) } } });
       return order;
     },
     { timeout: 15_000, maxWait: 10_000 },
   );
 }
 
+export type ReportResult = "AWAITING" | "LATE_UNAVAILABLE" | "CLOSED_REPORTED";
+
 /**
- * "Já fiz o pagamento": RESERVED (dentro do prazo) → AWAITING_PAYMENT_CONFIRMATION.
- * O UPDATE condicional é atômico — o prazo é verificado pelo servidor, não pelo contador da tela.
+ * "Já fiz o pagamento". O prazo é decidido pelo servidor, nunca pelo contador da tela.
+ *  - reserva válida → AWAITING_PAYMENT_CONFIRMATION (não expira mais; só o admin decide);
+ *  - reserva vencida, mas os presentes continuam livres → reativa e fica AWAITING;
+ *  - reserva vencida e presente já reservado por outra pessoa → NÃO vende em dobro: o aviso
+ *    fica registrado (Payment AWAITING_CONFIRMATION num pedido EXPIRED) para o admin resolver;
+ *  - pedido cancelado → o aviso também fica registrado (o convidado pode ter pago mesmo assim).
+ * Idempotente para pedidos já aguardando/confirmados.
  */
-export async function reportPayment(db: Db, guestId: string, orderId: string, now = new Date()) {
+export async function reportPayment(db: Db, guestId: string, orderId: string, now = new Date()): Promise<ReportResult> {
   return db.$transaction(async (tx) => {
-    const changed = await tx.order.updateMany({
-      where: { id: orderId, guestId, status: "RESERVED", reservationExpiresAt: { gt: now } },
-      data: { status: "AWAITING_PAYMENT_CONFIRMATION", paymentReportedAt: now },
-    });
-    if (changed.count === 1) {
-      await tx.payment.updateMany({ where: { orderId }, data: { status: "AWAITING_CONFIRMATION" } });
-      return;
-    }
-    const order = await tx.order.findFirst({ where: { id: orderId, guestId } });
+    await lockGuest(tx, guestId);
+    const order = await tx.order.findFirst({ where: { id: orderId, guestId }, include: { items: true } });
     if (!order) throw new DomainError("ORDER_NOT_FOUND", "Pedido não encontrado.");
-    if (order.status === "AWAITING_PAYMENT_CONFIRMATION" || order.status === "PURCHASED") return; // idempotente
-    if (order.status === "RESERVED" || order.status === "EXPIRED") {
-      throw new DomainError("RESERVATION_EXPIRED", "O tempo da reserva acabou antes de o pagamento ser informado.");
+    if (order.status === "AWAITING_PAYMENT_CONFIRMATION" || order.status === "PURCHASED") return "AWAITING";
+
+    const markAwaiting = async () => {
+      await tx.order.update({ where: { id: orderId }, data: { status: "AWAITING_PAYMENT_CONFIRMATION", paymentReportedAt: now } });
+      await tx.payment.updateMany({ where: { orderId }, data: { status: "AWAITING_CONFIRMATION" } });
+    };
+    const recordLateReport = async (status: "EXPIRED" | "CANCELLED") => {
+      await tx.order.update({ where: { id: orderId }, data: { status, paymentReportedAt: now } });
+      await tx.payment.updateMany({ where: { orderId }, data: { status: "AWAITING_CONFIRMATION" } });
+    };
+
+    if (order.status === "RESERVED" && order.reservationExpiresAt > now) {
+      await markAwaiting();
+      return "AWAITING";
     }
-    throw new DomainError("ORDER_CLOSED", "Este pedido foi cancelado.");
+
+    if (order.status === "RESERVED" || order.status === "EXPIRED") {
+      const gifts = await lockGiftsWithAvailability(tx, order.items.map((i) => i.giftId), now);
+      const stillAvailable = order.items.every((item) => {
+        const entry = gifts.get(item.giftId);
+        return Boolean(entry && entry.gift.active && entry.available >= item.quantity);
+      });
+      if (stillAvailable) {
+        await markAwaiting();
+        return "AWAITING";
+      }
+      await recordLateReport("EXPIRED");
+      return "LATE_UNAVAILABLE";
+    }
+
+    await recordLateReport("CANCELLED");
+    return "CLOSED_REPORTED";
   });
 }
 
 /** Convidado desiste da reserva (ou ela venceu): itens voltam ao carrinho. */
 export async function releaseReservationToCart(db: Db, guestId: string, orderId: string, now = new Date()) {
   return db.$transaction(async (tx) => {
+    await lockGuest(tx, guestId);
     const order = await tx.order.findFirst({ where: { id: orderId, guestId }, include: { items: true } });
     if (!order) throw new DomainError("ORDER_NOT_FOUND", "Pedido não encontrado.");
     if (order.status !== "RESERVED") {
       if (order.status === "EXPIRED" || order.status === "CANCELLED") {
-        await returnItemsToCart(tx, guestId, order.items, "max");
+        // Aba antiga: se já existe outra reserva ativa (ex.: renovação), não duplica itens.
+        const otherActive = await tx.order.count({ where: { guestId, status: "RESERVED", reservationExpiresAt: { gt: now } } });
+        if (!otherActive) await returnItemsToCart(tx, guestId, order.items, "max");
         return;
       }
       throw new DomainError("ORDER_LOCKED", "Este pedido já está aguardando confirmação do pagamento.");

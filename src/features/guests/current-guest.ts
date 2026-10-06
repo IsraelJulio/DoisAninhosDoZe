@@ -22,3 +22,8 @@ export async function requireGuest(nextPath: string, { requireName = false } = {
   if (requireName && !guest.name) redirect(`/entrar?etapa=nome&next=${next}`);
   return guest;
 }
+
+/** Id do convidado da sessão, somente se ele ainda existir no banco (usado pelas Server Actions). */
+export async function getSessionGuestId(): Promise<string | null> {
+  return (await getCurrentGuest())?.id ?? null;
+}

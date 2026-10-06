@@ -3,12 +3,12 @@
 import { redirect } from "next/navigation";
 import { fieldErrorsFromZod, type ActionState } from "@/lib/action-state";
 import { getDb } from "@/server/db";
-import { getGuestIdFromSession } from "@/server/session/guest-session";
+import { getSessionGuestId } from "@/features/guests/current-guest";
 import { rsvpSchema } from "./rsvp-schema";
 import { upsertRsvp } from "./rsvp-service";
 
 export async function saveRsvpAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const guestId = await getGuestIdFromSession();
+  const guestId = await getSessionGuestId();
   if (!guestId) redirect("/entrar?next=/presenca");
 
   const parsed = rsvpSchema.safeParse({

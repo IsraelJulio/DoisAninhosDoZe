@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
+import { PENDING_PAYMENTS_WHERE } from "@/features/admin/admin-queries";
 import { AdminNav } from "@/features/admin/components/admin-nav";
 import { adminLogoutAction } from "@/features/admin/actions";
 import { EVENT } from "@/features/event/event";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: { default: "Painel", template: "%s ·
 // Painel administrativo — referência: mockups/10-admin.png
 export default async function AdminPanelLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
-  const pending = await getDb().order.count({ where: { status: "AWAITING_PAYMENT_CONFIRMATION" } });
+  const pending = await getDb().order.count({ where: PENDING_PAYMENTS_WHERE });
 
   return (
     <div className="min-h-dvh bg-cream">

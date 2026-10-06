@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ActionState } from "@/lib/action-state";
 import { isDomainError } from "@/lib/domain-error";
 import { getDb } from "@/server/db";
-import { getGuestIdFromSession } from "@/server/session/guest-session";
+import { getSessionGuestId } from "@/features/guests/current-guest";
 import { addToCart, MAX_QUANTITY_PER_ITEM, removeCartItem, setCartItemQuantity } from "./cart-service";
 
 // Apenas giftId + quantidade chegam do navegador. Preço nunca é aceito do cliente.
@@ -17,7 +17,7 @@ const addSchema = z.object({
 });
 
 async function guestOrLogin(nextPath: string) {
-  const guestId = await getGuestIdFromSession();
+  const guestId = await getSessionGuestId();
   if (!guestId) redirect(`/entrar?next=${encodeURIComponent(nextPath)}`);
   return guestId;
 }

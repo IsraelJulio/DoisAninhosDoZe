@@ -41,6 +41,10 @@ const EVP = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Valida o formato de uma chave Pix (e-mail, telefone +55, CPF, CNPJ ou aleatória). */
 export function normalizePixKey(rawKey: string): string {
   const key = rawKey.trim();
+  // Comprimentos EMV contam bytes; chaves Pix válidas são sempre ASCII.
+  if (!/^[\x21-\x7e]+$/.test(key.replace(/[\s]/g, ""))) {
+    throw new PixPayloadError("PIX_KEY inválida: contém caracteres não permitidos");
+  }
   if (EMAIL.test(key)) return key.toLowerCase();
   if (EVP.test(key)) return key.toLowerCase();
   if (/^\+55\d{10,11}$/.test(key)) return key;

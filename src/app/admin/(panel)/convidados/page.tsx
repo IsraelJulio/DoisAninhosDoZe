@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/server/session/admin-session";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Search } from "lucide-react";
@@ -21,6 +22,7 @@ const FILTERS: { value: GuestFilter; label: string }[] = [
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
 export default async function AdminGuestsPage({ searchParams }: PageProps<"/admin/convidados">) {
+  await requireAdmin(); // defesa em profundidade: não depender só do layout/proxy
   const params = await searchParams;
   const filter = (FILTERS.find((f) => f.value === params.filtro)?.value ?? "all") as GuestFilter;
   const search = typeof params.q === "string" ? params.q.slice(0, 80) : "";

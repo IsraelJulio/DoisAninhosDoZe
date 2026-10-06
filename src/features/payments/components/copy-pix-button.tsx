@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 /** Copia o PAYLOAD COMPLETO do Pix (Copia e Cola), não apenas a chave. */
 export function CopyPixButton({ payload }: { payload: string }) {
   const [copied, setCopied] = useState(false);
+  const [manual, setManual] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   async function copy() {
@@ -18,8 +19,12 @@ export function CopyPixButton({ payload }: { payload: string }) {
       if (!el) return;
       el.focus();
       el.select();
-      document.execCommand("copy");
+      if (!document.execCommand("copy")) {
+        setManual(true); // não conseguimos copiar: o texto fica selecionado para copiar à mão
+        return;
+      }
     }
+    setManual(false);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 3000);
   }
@@ -33,6 +38,11 @@ export function CopyPixButton({ payload }: { payload: string }) {
       <span className="sr-only" aria-live="polite">
         {copied ? "Código Pix copiado para a área de transferência" : ""}
       </span>
+      {manual && (
+        <p className="text-sm font-semibold text-wood-dark" role="status">
+          Seu navegador não deixou copiar automaticamente. O código abaixo já está selecionado: toque e segure para copiar.
+        </p>
+      )}
       <label htmlFor="pix-payload" className="text-xs font-bold text-ink-soft">
         Pix Copia e Cola
       </label>

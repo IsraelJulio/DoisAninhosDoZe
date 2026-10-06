@@ -11,7 +11,7 @@ export async function getDashboard(db: Db, now = new Date()) {
     getRsvpTotals(db),
     db.gift.findMany({ where: { active: true }, select: { id: true, stockQuantity: true, active: true } }),
     getGiftHolds(db, now),
-    db.order.count({ where: { status: "AWAITING_PAYMENT_CONFIRMATION" } }),
+    db.order.count({ where: PENDING_PAYMENTS_WHERE }),
     db.order.aggregate({ where: { status: "PURCHASED" }, _sum: { totalInCents: true }, _count: { _all: true } }),
     db.rsvp.findMany({
       where: { attending: true },
@@ -55,17 +55,28 @@ export async function listGuestsForAdmin(db: Db, { filter = "all", search = "" }
 
 export type PaymentTab = "pending" | "confirmed" | "cancelled" | "reserved";
 
-const TAB_STATUSES: Record<PaymentTab, OrderStatus[]> = {
-  pending: ["AWAITING_PAYMENT_CONFIRMATION"],
-  reserved: ["RESERVED"],
-  confirmed: ["PURCHASED"],
-  cancelled: ["CANCELLED", "EXPIRED"],
+/** Pix informado num pedido que já não está ativo (reserva vencida e presente com outra pessoa). */
+const LATE_REPORT: Prisma.OrderWhereInput = {
+  status: { in: ["EXPIRED", "CANCELLED"] },
+  payment: { status: "AWAITING_CONFIRMATION" },
+};
+
+/** Pendentes = aguardando confirmação + avisos de Pix tardios que o admin precisa resolver. */
+export const PENDING_PAYMENTS_WHERE: Prisma.OrderWhereInput = {
+  OR: [{ status: "AWAITING_PAYMENT_CONFIRMATION" }, LATE_REPORT],
+};
+
+const TAB_WHERE: Record<PaymentTab, Prisma.OrderWhereInput> = {
+  pending: PENDING_PAYMENTS_WHERE,
+  reserved: { status: "RESERVED" },
+  confirmed: { status: "PURCHASED" },
+  cancelled: { status: { in: ["CANCELLED", "EXPIRED"] as OrderStatus[] }, NOT: LATE_REPORT },
 };
 
 export async function listOrdersForAdmin(db: Db, tab: PaymentTab, now = new Date()) {
   await expireStaleReservations(db, now);
   return db.order.findMany({
-    where: { status: { in: TAB_STATUSES[tab] } },
+    where: TAB_WHERE[tab],
     include: { guest: { select: { name: true, phone: true } }, items: true, payment: true },
     orderBy: tab === "pending" ? { paymentReportedAt: "asc" } : { updatedAt: "desc" },
     take: 200,
@@ -73,15 +84,10 @@ export async function listOrdersForAdmin(db: Db, tab: PaymentTab, now = new Date
 }
 
 export async function countOrdersByTab(db: Db) {
-  const groups = await db.order.groupBy({ by: ["status"], _count: { _all: true } });
-  const count = (statuses: OrderStatus[]) =>
-    groups.filter((g) => statuses.includes(g.status)).reduce((acc, g) => acc + g._count._all, 0);
-  return {
-    pending: count(TAB_STATUSES.pending),
-    reserved: count(TAB_STATUSES.reserved),
-    confirmed: count(TAB_STATUSES.confirmed),
-    cancelled: count(TAB_STATUSES.cancelled),
-  };
+  const [pending, reserved, confirmed, cancelled] = await Promise.all(
+    (["pending", "reserved", "confirmed", "cancelled"] as const).map((tab) => db.order.count({ where: TAB_WHERE[tab] })),
+  );
+  return { pending, reserved, confirmed, cancelled };
 }
 
 export async function listGiftsForAdmin(db: Db, now = new Date()) {

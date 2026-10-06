@@ -1,10 +1,11 @@
+import { requireAdmin } from "@/server/session/admin-session";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Notice } from "@/components/ui/notice";
 import { countOrdersByTab, listOrdersForAdmin, type PaymentTab } from "@/features/admin/admin-queries";
-import { cancelOrderAction, confirmPaymentAction } from "@/features/admin/actions";
+import { cancelOrderAction, confirmPaymentAction, resolveLatePaymentAction } from "@/features/admin/actions";
 import { ConfirmActionButton } from "@/features/admin/components/confirm-action-button";
 import { ORDER_STATUS_LABEL } from "@/features/orders/order-status";
 import { cn } from "@/lib/cn";
@@ -24,6 +25,7 @@ const TABS: { value: PaymentTab; label: string }[] = [
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
 export default async function AdminPaymentsPage({ searchParams }: PageProps<"/admin/pagamentos">) {
+  await requireAdmin(); // defesa em profundidade: não depender só do layout/proxy
   const params = await searchParams;
   const tab = (TABS.find((t) => t.value === params.aba)?.value ?? "pending") as PaymentTab;
   const db = getDb();
@@ -39,8 +41,9 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
 
       {params.feito === "confirmado" && <Notice tone="success">Pagamento confirmado! O presente foi marcado como presenteado.</Notice>}
       {params.feito === "cancelado" && <Notice tone="success">Pedido cancelado. Os itens voltaram a ficar disponíveis.</Notice>}
+      {params.feito === "resolvido" && <Notice tone="success">Aviso de Pix marcado como resolvido.</Notice>}
 
-      <nav aria-label="Abas de pagamentos" className="-mx-4 overflow-x-auto px-4">
+      <nav aria-label="Abas de pagamentos" data-scroll-x className="-mx-4 overflow-x-auto px-4">
         <ul className="flex w-max gap-2">
           {TABS.map((t) => (
             <li key={t.value}>
@@ -85,6 +88,25 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
                 <p className="font-display text-2xl font-semibold text-forest-dark">{formatBRL(order.totalInCents)}</p>
                 <p className="font-mono text-xs text-ink-soft">txid: {order.pixTxid}</p>
               </div>
+              {(order.status === "EXPIRED" || order.status === "CANCELLED") && order.payment?.status === "AWAITING_CONFIRMATION" && (
+                <div className="flex flex-col gap-2 rounded-2xl bg-warning/20 p-3 text-sm">
+                  <p>
+                    <strong>Pix informado depois que a reserva {order.status === "EXPIRED" ? "expirou" : "foi cancelada"}.</strong> O
+                    presente já não estava mais reservado para esta pessoa, então não pode ser confirmado sem vender em dobro.
+                    Confira o extrato e, se o Pix entrou, devolva o valor ou combine outro presente com o convidado.
+                  </p>
+                  <div>
+                    <ConfirmActionButton
+                      variant="secondary"
+                      label="Marcar como resolvido"
+                      title="Marcar como resolvido"
+                      description="Use depois de devolver o valor ou combinar outro presente com o convidado."
+                      confirmLabel="Resolvido"
+                      action={resolveLatePaymentAction.bind(null, order.id)}
+                    />
+                  </div>
+                </div>
+              )}
               {(order.status === "AWAITING_PAYMENT_CONFIRMATION" || order.status === "RESERVED") && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   <ConfirmActionButton

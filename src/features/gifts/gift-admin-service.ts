@@ -1,4 +1,6 @@
+import { DomainError } from "@/lib/domain-error";
 import type { Db } from "@/server/db";
+import { getGiftHolds } from "./gift-holds";
 import type { GiftFormInput } from "./gift-schema";
 
 function toData(input: GiftFormInput) {
@@ -27,6 +29,17 @@ export async function createGift(db: Db, input: GiftFormInput) {
 
 /** O preço salvo aqui é a referência do Pix; nunca é atualizado automaticamente pela loja. */
 export async function updateGift(db: Db, id: string, input: GiftFormInput) {
+  const existing = await db.gift.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) throw new DomainError("GIFT_NOT_FOUND", "Presente não encontrado.");
+  // O estoque nunca pode ficar abaixo do que já foi presenteado ou está reservado/aguardando
+  const holds = (await getGiftHolds(db, new Date(), [id])).get(id);
+  const committed = (holds?.purchased ?? 0) + (holds?.reserved ?? 0);
+  if (input.stockQuantity < committed) {
+    throw new DomainError(
+      "STOCK_BELOW_COMMITTED",
+      `Já há ${committed} unidade(s) presenteada(s) ou reservada(s); a quantidade não pode ser menor que isso.`,
+    );
+  }
   const gift = await db.gift.update({ where: { id }, data: toData(input) });
   await db.adminAuditLog.create({
     data: { action: "GIFT_UPDATED", entityType: "Gift", entityId: id, metadata: { priceInCents: input.price } },

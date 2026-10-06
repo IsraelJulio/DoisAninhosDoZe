@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/server/session/admin-session";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,6 +8,7 @@ import { getDb } from "@/server/db";
 export const metadata: Metadata = { title: "Editar presente" };
 
 export default async function EditGiftPage({ params }: PageProps<"/admin/presentes/[id]">) {
+  await requireAdmin(); // defesa em profundidade: não depender só do layout/proxy
   const { id } = await params;
   const db = getDb();
   const [gift, categoryRows] = await Promise.all([

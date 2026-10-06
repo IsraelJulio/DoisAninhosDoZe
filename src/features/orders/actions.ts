@@ -7,14 +7,14 @@ import type { ActionState } from "@/lib/action-state";
 import { isDomainError } from "@/lib/domain-error";
 import { getDb } from "@/server/db";
 import { enforceRateLimit, RateLimitError } from "@/server/rate-limit";
-import { getGuestIdFromSession } from "@/server/session/guest-session";
+import { getSessionGuestId } from "@/features/guests/current-guest";
 import { getReservationMinutes } from "./reservation-settings";
 import { createReservationFromCart, releaseReservationToCart, reportPayment } from "./reservation-service";
 
 const orderIdSchema = z.string().min(1).max(64);
 
 async function requireGuestId(next: string) {
-  const guestId = await getGuestIdFromSession();
+  const guestId = await getSessionGuestId();
   if (!guestId) redirect(`/entrar?next=${encodeURIComponent(next)}`);
   return guestId;
 }

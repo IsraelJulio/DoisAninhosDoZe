@@ -87,7 +87,45 @@ describe("buildStaticPixPayload", () => {
   });
 });
 
+describe("vetor conhecido (snapshot byte a byte)", () => {
+  // CRC conferido de forma independente com binascii.crc_hqx(body, 0xFFFF) do Python.
+  // Chave fictícia (zeros) — nunca use chave real em testes.
+  const expected =
+    "000201" +
+    "010211" +
+    "2675" + "0014br.gov.bcb.pix" + "0136" + "00000000-0000-0000-0000-000000000000" + "0213Presente Jose" +
+    "52040000" +
+    "5303986" +
+    "5406369.70" +
+    "5802BR" +
+    "5925Jose da Conceicao Nandu F" +
+    "6015Sao Joao del-Re" +
+    "62180514JOSE2TESTE0001" +
+    "63045C65";
+
+  it("gera exatamente o payload esperado", () => {
+    expect(
+      buildStaticPixPayload({
+        key: "00000000-0000-0000-0000-000000000000",
+        receiverName: "José da Conceição Ñandú Filho Júnior",
+        receiverCity: "São João del-Rei",
+        amountInCents: 36970,
+        txid: "JOSE2TESTE0001",
+        description: "Presente Jose",
+      }),
+    ).toBe(expected);
+  });
+
+  it("todo o payload é ASCII (comprimentos EMV contam caracteres = bytes)", () => {
+    expect(/^[ -~]+$/.test(expected)).toBe(true);
+  });
+});
+
 describe("normalizePixKey", () => {
+  it("rejeita chave com caracteres não ASCII", () => {
+    expect(() => normalizePixKey("joão@exemplo.com")).toThrow(PixPayloadError);
+  });
+
   it("aceita os tipos de chave válidos", () => {
     expect(normalizePixKey("Pessoa@Email.com")).toBe("pessoa@email.com");
     expect(normalizePixKey("+5531999998888")).toBe("+5531999998888");
@@ -99,5 +137,11 @@ describe("normalizePixKey", () => {
 describe("sanitizePixText", () => {
   it("remove caracteres não seguros", () => {
     expect(sanitizePixText("Ação & Cia!", 25)).toBe("Acao Cia");
+  });
+  it("cedilha, til, espaços múltiplos e emoji", () => {
+    expect(sanitizePixText("  Maçã   Doçura 🎉 ", 25)).toBe("Maca Docura");
+  });
+  it("não termina com espaço após truncar", () => {
+    expect(sanitizePixText("Ana Maria da Silva Souza Lima", 25)).toBe("Ana Maria da Silva Souza");
   });
 });

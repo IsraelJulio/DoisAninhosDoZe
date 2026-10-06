@@ -29,6 +29,16 @@ describe("formatação", () => {
   it("mascara para o admin", () => {
     expect(maskBrazilianPhone("+5531999998888")).toBe("(31) •••••-8888");
   });
+  it("colar número do WhatsApp com +55 no campo (que já mostra +55)", () => {
+    expect(maskPhoneInput("+55 31 99999-8888")).toBe("(31) 99999-8888");
+    expect(maskPhoneInput("+55 (31) 99999-8888")).toBe("(31) 99999-8888");
+    expect(maskPhoneInput("‪+55 31 99999‑8888‬")).toBe("(31) 99999-8888");
+    expect(maskPhoneInput("031 99999 8888")).toBe("(31) 99999-8888");
+  });
+  it("normaliza colagens do WhatsApp", () => {
+    expect(normalizeBrazilianPhone("‪+55 31 99999‑8888‬")).toBe("+5531999998888");
+    expect(normalizeBrazilianPhone("  31 9 9999 8888 ")).toBe("+5531999998888");
+  });
   it("máscara progressiva do input", () => {
     expect(maskPhoneInput("3")).toBe("(3");
     expect(maskPhoneInput("3199")).toBe("(31) 99");

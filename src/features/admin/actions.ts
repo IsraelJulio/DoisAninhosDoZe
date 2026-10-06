@@ -10,7 +10,7 @@ import { giftFormSchema } from "@/features/gifts/gift-schema";
 import { importGiftFromUrl, type ImportPreview } from "@/features/gifts/import/import-service";
 import { UnsafeUrlError } from "@/features/gifts/import/url-guard";
 import { EVENT_SLUG } from "@/features/orders/reservation-settings";
-import { cancelOrderByAdmin, confirmOrderPayment } from "@/features/payments/payment-service";
+import { cancelOrderByAdmin, confirmOrderPayment, resolveLatePaymentReport } from "@/features/payments/payment-service";
 import { getDb } from "@/server/db";
 import { enforceRateLimit, RateLimitError } from "@/server/rate-limit";
 import {
@@ -87,8 +87,17 @@ export async function saveGiftAction(_prev: ActionState, formData: FormData): Pr
 
   const id = typeof raw.id === "string" && raw.id ? idSchema.parse(raw.id) : null;
   const db = getDb();
-  if (id) await updateGift(db, id, parsed.data);
-  else await createGift(db, parsed.data);
+  try {
+    if (id) await updateGift(db, id, parsed.data);
+    else await createGift(db, parsed.data);
+  } catch (error) {
+    if (isDomainError(error)) {
+      return error.code === "STOCK_BELOW_COMMITTED"
+        ? { fieldErrors: { stockQuantity: error.message }, error: error.message }
+        : { error: error.message };
+    }
+    throw error;
+  }
   revalidatePath("/admin", "layout");
   revalidatePath("/presentes", "layout");
   redirect("/admin/presentes?salvo=1");
@@ -125,6 +134,13 @@ export async function importGiftAction(url: string): Promise<{ preview?: ImportP
     console.error("Falha no importador", error);
     return { error: "Não foi possível obter todas as informações automaticamente." };
   }
+}
+
+export async function resolveLatePaymentAction(orderId: string): Promise<ActionState> {
+  await requireAdmin();
+  await resolveLatePaymentReport(getDb(), idSchema.parse(orderId));
+  revalidateOrders();
+  redirect("/admin/pagamentos?aba=pending&feito=resolvido");
 }
 
 const settingsSchema = z.object({ reservationMinutes: z.coerce.number().int().min(5).max(180) });

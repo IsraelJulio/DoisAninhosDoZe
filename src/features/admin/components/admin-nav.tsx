@@ -16,7 +16,7 @@ const ITEMS = [
 export function AdminNav({ pendingCount }: { pendingCount: number }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Seções do painel" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
+    <nav aria-label="Seções do painel" data-scroll-x className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
       <ul className="flex w-max gap-2 pb-1">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);

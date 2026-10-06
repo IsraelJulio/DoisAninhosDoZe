@@ -46,6 +46,25 @@ export default async function PedidoPage({ params }: PageProps<"/pedido/[orderId
 
   const status = effectiveOrderStatus(order, new Date());
   if (status === "RESERVED") redirect(`/pagamento/${order.id}`);
+  if ((status === "EXPIRED" || status === "CANCELLED") && order.paymentReportedAt && order.payment?.status === "AWAITING_CONFIRMATION") {
+    return (
+      <StateScreen
+        title="Recebemos o seu aviso"
+        description={
+          <>
+            O tempo da reserva tinha acabado e {order.items.length > 1 ? "os presentes foram escolhidos" : "o presente foi escolhido"} por
+            outra pessoa antes do aviso de pagamento. Não se preocupe: os pais do {EVENT.childName} vão conferir o Pix e falar com você
+            para devolver o valor ou combinar outro presente.
+          </>
+        }
+        mascot="/assets/mascots/giraffe.png"
+      >
+        <ButtonLink href="/" block>
+          Voltar para o convite
+        </ButtonLink>
+      </StateScreen>
+    );
+  }
   if (status === "EXPIRED" || status === "CANCELLED") {
     return (
       <StateScreen

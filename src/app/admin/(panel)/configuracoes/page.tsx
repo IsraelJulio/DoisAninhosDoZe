@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/server/session/admin-session";
 import type { Metadata } from "next";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { SettingsForm } from "@/features/admin/components/settings-form";
@@ -26,6 +27,7 @@ function Row({ ok, label, detail }: { ok: boolean; label: string; detail?: strin
 }
 
 export default async function AdminSettingsPage() {
+  await requireAdmin(); // defesa em profundidade: não depender só do layout/proxy
   const minutes = await getReservationMinutes(getDb());
   const pix = getPixEnvConfig();
   let pixKeyValid = false;

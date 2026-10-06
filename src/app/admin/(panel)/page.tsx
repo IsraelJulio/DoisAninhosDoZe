@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/server/session/admin-session";
 import Link from "next/link";
 import { Baby, CheckCircle2, Clock, DollarSign, Gift, Lock, UserCheck, Users, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { getDb } from "@/server/db";
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
 export default async function AdminOverviewPage() {
+  await requireAdmin(); // defesa em profundidade: não depender só do layout/proxy
   const d = await getDashboard(getDb());
 
   return (

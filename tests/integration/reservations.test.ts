@@ -128,15 +128,18 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     await putInCart(db, bia.id, gift.id);
     await expect(createReservationFromCart(db, bia.id, { now: at(240) })).rejects.toMatchObject({ code: "UNAVAILABLE" });
     // idempotente
-    await expect(reportPayment(db, ana.id, order.id, at(241))).resolves.toBeUndefined();
+    await expect(reportPayment(db, ana.id, order.id, at(241))).resolves.toBe("AWAITING");
   });
 
-  it("'Já fiz o pagamento' após o prazo é recusado pelo servidor", async () => {
+  it("'Já fiz o pagamento' após o prazo nunca toma o presente de quem reservou depois", async () => {
     const gift = await createGift(db);
-    const guest = await createGuest(db);
-    await putInCart(db, guest.id, gift.id);
-    const order = await createReservationFromCart(db, guest.id, { now: T0 });
-    await expect(reportPayment(db, guest.id, order.id, at(31))).rejects.toMatchObject({ code: "RESERVATION_EXPIRED" });
+    const [ana, bia] = await Promise.all([createGuest(db), createGuest(db)]);
+    await putInCart(db, ana.id, gift.id);
+    const order = await createReservationFromCart(db, ana.id, { now: T0 });
+    await putInCart(db, bia.id, gift.id);
+    const biaOrder = await createReservationFromCart(db, bia.id, { now: at(31) });
+    await expect(reportPayment(db, ana.id, order.id, at(32))).resolves.toBe("LATE_UNAVAILABLE");
+    expect((await db.order.findUniqueOrThrow({ where: { id: biaOrder.id } })).status).toBe("RESERVED");
   });
 
   it("convidado não consegue informar pagamento de pedido alheio", async () => {
@@ -162,8 +165,8 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     expect((await getPublicGift(db, gift.id, at(61)))?.status).toBe("PURCHASED");
     expect(await db.adminAuditLog.count({ where: { entityId: order.id, action: "PAYMENT_CONFIRMED" } })).toBe(1);
 
-    // não confirma duas vezes nem cancela depois
-    await expect(confirmOrderPayment(db, order.id, at(62))).rejects.toMatchObject({ code: "CANNOT_CONFIRM" });
+    // confirmar de novo é idempotente; cancelar depois não é permitido
+    await expect(confirmOrderPayment(db, order.id, at(62))).resolves.toBe("ALREADY_CONFIRMED");
     await expect(cancelOrderByAdmin(db, order.id, at(62))).rejects.toMatchObject({ code: "CANNOT_CANCEL" });
   });
 

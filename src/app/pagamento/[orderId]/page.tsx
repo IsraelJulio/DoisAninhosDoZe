@@ -37,6 +37,7 @@ export default async function PagamentoPage({ params }: PageProps<"/pagamento/[o
   const status = effectiveOrderStatus(order, now);
   if (status === "AWAITING_PAYMENT_CONFIRMATION" || status === "PURCHASED") redirect(`/pedido/${order.id}`);
 
+  if (order.paymentReportedAt && (status === "EXPIRED" || status === "CANCELLED")) redirect(`/pedido/${order.id}`);
   if (status === "EXPIRED" || status === "CANCELLED") {
     return (
       <StateScreen
@@ -48,7 +49,13 @@ export default async function PagamentoPage({ params }: PageProps<"/pagamento/[o
         }
         mascot="/assets/mascots/monkey.png"
       >
-        <ReleaseReservationButton orderId={order.id} label="Tentar novamente" variant="primary" />
+        {status === "EXPIRED" && (
+          <>
+            <p className="text-sm text-ink-soft">Já tinha feito o Pix antes do tempo acabar? Avise aqui:</p>
+            <ReportPaymentButton orderId={order.id} />
+          </>
+        )}
+        <ReleaseReservationButton orderId={order.id} label="Tentar novamente" variant={status === "EXPIRED" ? "secondary" : "primary"} />
         <ButtonLink href="/presentes" variant="secondary" block>
           Ver lista de presentes
         </ButtonLink>

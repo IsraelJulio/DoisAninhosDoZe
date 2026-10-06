@@ -9,7 +9,7 @@ export function CategoryChips({ categories, active }: { categories: string[]; ac
       selected ? "bg-forest text-white shadow-[0_3px_0_var(--color-forest-dark)]" : "bg-paper text-ink ring-1 ring-line hover:ring-sand",
     );
   return (
-    <nav aria-label="Categorias" className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+    <nav aria-label="Categorias" data-scroll-x className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
       <ul className="flex w-max gap-2">
         <li>
           <Link href="/presentes" className={chip(!active)} aria-current={!active ? "page" : undefined}>
