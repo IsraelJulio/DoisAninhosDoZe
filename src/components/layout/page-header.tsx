@@ -34,7 +34,7 @@ export function PageHeader({
         <span className="size-11 shrink-0" aria-hidden />
       )}
       <div className="flex min-w-0 flex-1 justify-center">
-        <WoodSign as="h1" className="max-w-full text-xl">
+        <WoodSign as="h1" className={`max-w-full px-4 ${title.length > 16 ? "text-base" : "text-xl"}`}>
           {icon}
           <span className="truncate">{title}</span>
         </WoodSign>
