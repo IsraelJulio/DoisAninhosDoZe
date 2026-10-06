@@ -1,0 +1,199 @@
+// Modelo de dados — aniversário de 2 anos do José.
+// Dinheiro sempre em centavos (Int). Telefones em E.164.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Configurações operacionais do evento. Os dados do convite (data, horário, endereço)
+/// vêm de docs/event-config.json e não são editáveis.
+model Event {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  childName          String
+  eventDate          DateTime
+  reservationMinutes Int      @default(30)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Guest {
+  id        String   @id @default(cuid())
+  phone     String   @unique /// E.164, ex.: +5531999999999
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rsvp   Rsvp?
+  cart   Cart?
+  orders Order[]
+}
+
+model Rsvp {
+  id        String   @id @default(cuid())
+  guestId   String   @unique
+  attending Boolean
+  adults    Int      @default(0)
+  children  Int      @default(0)
+  message   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+}
+
+/// O status exibido (Disponível / Reservado / Presenteado) é DERIVADO de stockQuantity
+/// e dos pedidos ativos — não é armazenado, para nunca ficar inconsistente.
+model Gift {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  priceInCents  Int
+  imageUrl      String?
+  sourceUrl     String?
+  source        String? /// loja de origem detectada (ex.: "Shopee") — apenas referência administrativa
+  category      String   @default("Brinquedos")
+  stockQuantity Int      @default(1)
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  imports    GiftImport[]
+
+  @@index([active, category])
+}
+
+enum GiftImportStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model GiftImport {
+  id             String           @id @default(cuid())
+  originalUrl    String
+  resolvedUrl    String?
+  extractedTitle String?
+  extractedPrice Int? /// centavos
+  extractedImage String?
+  source         String?
+  status         GiftImportStatus
+  error          String?
+  giftId         String?
+  createdAt      DateTime         @default(now())
+
+  gift Gift? @relation(fields: [giftId], references: [id], onDelete: SetNull)
+}
+
+/// Um carrinho por convidado. Os itens são removidos quando o checkout cria um pedido.
+model Cart {
+  id        String   @id @default(cuid())
+  guestId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guest Guest      @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  items CartItem[]
+}
+
+model CartItem {
+  id       String @id @default(cuid())
+  cartId   String
+  giftId   String
+  quantity Int
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  gift Gift @relation(fields: [giftId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, giftId])
+}
+
+enum OrderStatus {
+  RESERVED /// reserva temporária (expira em reservationExpiresAt)
+  AWAITING_PAYMENT_CONFIRMATION /// convidado informou o pagamento; não expira
+  PURCHASED /// admin confirmou o Pix
+  EXPIRED /// reserva venceu sem pagamento informado
+  CANCELLED /// cancelado pelo admin ou pelo convidado
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  guestId              String
+  status               OrderStatus @default(RESERVED)
+  subtotalInCents      Int
+  totalInCents         Int
+  pixTxid              String      @unique
+  reservationExpiresAt DateTime
+  paymentReportedAt    DateTime?
+  confirmedAt          DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  guest   Guest       @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  items   OrderItem[]
+  payment Payment?
+
+  @@index([status, reservationExpiresAt])
+  @@index([guestId])
+}
+
+model OrderItem {
+  id                String  @id @default(cuid())
+  orderId           String
+  giftId            String
+  quantity          Int
+  unitPriceInCents  Int
+  giftTitleSnapshot String
+  giftImageSnapshot String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  gift  Gift  @relation(fields: [giftId], references: [id], onDelete: Restrict)
+
+  @@index([giftId])
+}
+
+enum PaymentMethod {
+  PIX
+}
+
+enum PaymentStatus {
+  PENDING /// aguardando o convidado pagar
+  AWAITING_CONFIRMATION /// convidado informou que pagou
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  method        PaymentMethod @default(PIX)
+  status        PaymentStatus @default(PENDING)
+  amountInCents Int
+  pixPayload    String?
+  confirmedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
