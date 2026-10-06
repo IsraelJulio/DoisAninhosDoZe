@@ -64,7 +64,7 @@ export async function confirmPaymentAction(orderId: string): Promise<ActionState
     throw error;
   }
   revalidateOrders();
-  return { ok: true, message: "Pagamento confirmado! O presente foi marcado como presenteado." };
+  redirect("/admin/pagamentos?aba=pending&feito=confirmado"); // o card sai da aba, então o aviso fica na página
 }
 
 export async function cancelOrderAction(orderId: string): Promise<ActionState> {
@@ -76,7 +76,7 @@ export async function cancelOrderAction(orderId: string): Promise<ActionState> {
     throw error;
   }
   revalidateOrders();
-  return { ok: true, message: "Pedido cancelado. Os itens voltaram a ficar disponíveis." };
+  redirect("/admin/pagamentos?aba=pending&feito=cancelado");
 }
 
 export async function saveGiftAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

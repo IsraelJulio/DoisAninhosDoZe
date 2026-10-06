@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Notice } from "@/components/ui/notice";
 import { countOrdersByTab, listOrdersForAdmin, type PaymentTab } from "@/features/admin/admin-queries";
 import { cancelOrderAction, confirmPaymentAction } from "@/features/admin/actions";
 import { ConfirmActionButton } from "@/features/admin/components/confirm-action-button";
@@ -35,6 +36,9 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
         Confira o Pix no extrato da sua conta (valor e txid) antes de confirmar. A confirmação marca os presentes como
         presenteados.
       </p>
+
+      {params.feito === "confirmado" && <Notice tone="success">Pagamento confirmado! O presente foi marcado como presenteado.</Notice>}
+      {params.feito === "cancelado" && <Notice tone="success">Pedido cancelado. Os itens voltaram a ficar disponíveis.</Notice>}
 
       <nav aria-label="Abas de pagamentos" className="-mx-4 overflow-x-auto px-4">
         <ul className="flex w-max gap-2">

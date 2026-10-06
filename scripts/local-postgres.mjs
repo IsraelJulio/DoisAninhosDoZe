@@ -17,7 +17,7 @@ const port = Number(process.env.LOCAL_PG_PORT ?? 54329);
 const root = path.resolve(".local-postgres");
 const dataDir = path.join(root, "data");
 const logFile = path.join(root, "postgres.log");
-const databases = ["jose", "jose_test"];
+const databases = ["jose", "jose_test", "jose_e2e"];
 
 const platform = process.platform === "win32" ? "windows" : process.platform;
 const binaries = await import(`@embedded-postgres/${platform}-${process.arch}`);

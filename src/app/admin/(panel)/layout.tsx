@@ -7,6 +7,9 @@ import { EVENT } from "@/features/event/event";
 import { getDb } from "@/server/db";
 import { requireAdmin } from "@/server/session/admin-session";
 
+// Painel sempre renderizado sob demanda (dados ao vivo; o build nunca consulta o banco).
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: { default: "Painel", template: "%s · Painel do José" } };
 
 // Painel administrativo — referência: mockups/10-admin.png
