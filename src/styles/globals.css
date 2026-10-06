@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — espelham docs/design-tokens.json (há um teste garantindo a sincronia).
+ */
+@theme {
+  --color-forest: #168447;
+  --color-forest-dark: #0f5e35;
+  --color-leaf: #2f9b52;
+  --color-cream: #fff4de;
+  --color-sand: #f2d3a0;
+  --color-wood: #9b5c2e;
+  --color-wood-dark: #6b3a1f;
+  --color-orange: #f59b2f;
+  --color-sky: #cfeaf1;
+  --color-ink: #33251d;
+  --color-success: #1f9b55;
+  --color-warning: #f2b83b;
+  --color-danger: #e85b4b;
+
+  /* derivados para superfícies */
+  --color-paper: #fffaf0;
+  --color-ink-soft: #6b5446;
+  --color-line: #ecdcbf;
+
+  --radius-card: 24px;
+  --radius-button: 18px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 12px 34px rgba(75, 46, 23, 0.14);
+  --shadow-soft: 0 6px 18px rgba(75, 46, 23, 0.1);
+
+  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-body: var(--font-nunito), system-ui, sans-serif;
+
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-sway: sway 5s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  @keyframes sway {
+    0%,
+    100% {
+      transform: rotate(-3deg);
+    }
+    50% {
+      transform: rotate(3deg);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    background: var(--color-sand);
+  }
+  body {
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #fff8e8 0%, transparent 60%),
+      linear-gradient(180deg, #f6e2bb 0%, var(--color-sand) 100%);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-orange);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Placa de madeira em CSS (o asset pack pede que NÃO seja imagem) */
+  .wood-sign {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.4rem 0.65rem;
+    border-radius: 14px;
+    color: var(--color-cream);
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 0 2px 0 rgba(60, 30, 10, 0.45);
+    background:
+      repeating-linear-gradient(
+        178deg,
+        rgba(255, 255, 255, 0.05) 0 2px,
+        transparent 2px 9px,
+        rgba(0, 0, 0, 0.06) 9px 11px,
+        transparent 11px 18px
+      ),
+      linear-gradient(180deg, #b06c37 0%, var(--color-wood) 45%, #84481f 100%);
+    border: 2px solid var(--color-wood-dark);
+    box-shadow:
+      inset 0 2px 0 rgba(255, 220, 170, 0.35),
+      inset 0 -3px 0 rgba(60, 30, 10, 0.35),
+      0 6px 14px rgba(75, 46, 23, 0.28);
+  }
+  .wood-sign::before,
+  .wood-sign::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: #5a2f15;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  .wood-sign::before {
+    left: 8px;
+  }
+  .wood-sign::after {
+    right: 8px;
+  }
+
+  .paper-card {
+    background: rgba(255, 250, 240, 0.94);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(236, 220, 191, 0.9);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
