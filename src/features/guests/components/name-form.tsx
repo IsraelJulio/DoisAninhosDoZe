@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, User } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Field, inputClasses } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { initialActionState } from "@/lib/action-state";
@@ -10,6 +10,7 @@ import { saveGuestNameAction } from "../actions";
 
 export function NameForm({ next, defaultName }: { next: string; defaultName?: string }) {
   const [state, formAction] = useActionState(saveGuestNameAction, initialActionState);
+  const [name, setName] = useState(defaultName ?? ""); // controlado: o React reseta campos após a action
   const error = state.fieldErrors?.name;
 
   return (
@@ -23,7 +24,8 @@ export function NameForm({ next, defaultName }: { next: string; defaultName?: st
             name="name"
             autoComplete="name"
             placeholder="Ex.: Maria Silva"
-            defaultValue={defaultName}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className={cn(inputClasses, "pl-11")}
             aria-invalid={!!error || undefined}
             aria-describedby={error ? "name-error" : undefined}

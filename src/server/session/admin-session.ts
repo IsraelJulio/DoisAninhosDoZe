@@ -2,10 +2,10 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAdminCredentials, isProduction } from "@/lib/env";
-import { createSignedToken, safeEqual, verifySignedToken } from "./signing";
+import { ADMIN_COOKIE, ADMIN_PURPOSE as PURPOSE, isAdminToken } from "./admin-token";
+import { createSignedToken, safeEqual } from "./signing";
 
-export const ADMIN_COOKIE = "jose_admin";
-const PURPOSE = "admin-session";
+export { ADMIN_COOKIE, isAdminToken };
 const TTL_SECONDS = 60 * 60 * 12; // 12 horas
 
 interface AdminTokenPayload {
@@ -19,10 +19,6 @@ export function verifyAdminCredentials(username: string, password: string): bool
   const userOk = safeEqual(username, credentials.username);
   const passOk = safeEqual(password, credentials.password);
   return userOk && passOk;
-}
-
-export function isAdminToken(token: string | undefined): boolean {
-  return verifySignedToken<AdminTokenPayload>(token, PURPOSE)?.sub === "admin";
 }
 
 export async function setAdminSession(): Promise<void> {

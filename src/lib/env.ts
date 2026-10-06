@@ -15,20 +15,7 @@ export function getDatabaseUrl(): string {
   return url;
 }
 
-const DEV_SESSION_SECRET = "dev-only-insecure-session-secret-change-me-0123456789";
-
-/** Segredo base das sessões (convidado e admin usam chaves derivadas distintas). */
-export function getSessionSecret(): string {
-  const secret = read("ADMIN_SESSION_SECRET");
-  if (secret) {
-    if (isProduction && secret.length < 32) {
-      throw new Error("ADMIN_SESSION_SECRET deve ter pelo menos 32 caracteres em produção.");
-    }
-    return secret;
-  }
-  if (isProduction) throw new Error("ADMIN_SESSION_SECRET é obrigatória em produção.");
-  return DEV_SESSION_SECRET;
-}
+export { getSessionSecret } from "@/server/session/secret";
 
 export function getAdminCredentials(): { username: string; password: string } | null {
   const username = read("ADMIN_USERNAME");

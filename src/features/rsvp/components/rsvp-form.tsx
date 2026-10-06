@@ -21,6 +21,7 @@ export function RsvpForm({ defaults }: RsvpFormProps) {
   const [adults, setAdults] = useState(defaults.adults);
   const [children, setChildren] = useState(defaults.children);
   const [message, setMessage] = useState(defaults.message);
+  const [name, setName] = useState(defaults.name); // controlado: o React reseta campos após a action
   const errors = state.fieldErrors ?? {};
 
   const option = (value: boolean) =>
@@ -43,7 +44,8 @@ export function RsvpForm({ defaults }: RsvpFormProps) {
             name="name"
             autoComplete="name"
             placeholder="Digite seu nome"
-            defaultValue={defaults.name}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className={cn(inputClasses, "pl-11")}
             aria-invalid={!!errors.name || undefined}
             aria-describedby={errors.name ? "name-error" : undefined}

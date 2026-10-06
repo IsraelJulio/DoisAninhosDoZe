@@ -1,6 +1,5 @@
-import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getSessionSecret } from "@/lib/env";
+import { getSessionSecret } from "./secret";
 
 // Tokens assinados com HMAC-SHA256: base64url(payload JSON).base64url(assinatura).
 // Cada uso ("guest", "admin") deriva sua própria chave a partir do segredo base,
