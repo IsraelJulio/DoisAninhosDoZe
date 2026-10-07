@@ -15,8 +15,8 @@ export default function HomePage() {
         Aniversário de {EVENT.age} anos do {EVENT.childName}
       </h1>
 
-      {/* Hero: José + amigos da selva */}
-      <section className="relative h-[clamp(320px,92vw,390px)]" aria-label={`Foto do ${EVENT.childName} com os bichinhos`}>
+      {/* Hero: José sobre a placa "José 2 anos" + amigos da selva */}
+      <section className="relative h-[clamp(420px,112vw,440px)]" aria-label={`Foto do ${EVENT.childName} com os bichinhos`}>
         <CornerLeaves corners={["top-left", "top-right"]} size={90} />
         <AssetImage
           src="/assets/mascots/monkey.png"
@@ -24,15 +24,13 @@ export default function HomePage() {
           className="absolute left-4 top-3 z-[2] origin-top animate-sway"
         />
 
-        <div className="absolute bottom-0 left-1/2 z-[5] h-[88%] w-[48%] max-w-[205px] -translate-x-1/2 overflow-hidden">
-          <AssetImage
-            src="/assets/jose/jose-pointing-cutout.png"
-            alt={`${EVENT.childName} sorrindo e apontando`}
-            displayWidth={205}
-            priority
-            className="mx-auto w-full! animate-float drop-shadow-[0_10px_18px_rgba(51,37,29,0.25)]"
-          />
-        </div>
+        <AssetImage
+          src="/assets/jose/jose-hero.webp"
+          alt={`${EVENT.childName} sorrindo e apontando, sobre a placa ${EVENT.childName} ${EVENT.age} anos`}
+          displayWidth={290}
+          priority
+          className="absolute bottom-0 left-1/2 z-[5] max-w-[78%] -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(51,37,29,0.25)]"
+        />
 
         <AssetImage
           src="/assets/mascots/lion.png"
@@ -47,17 +45,6 @@ export default function HomePage() {
           style={{ animationDelay: "2s" }}
         />
       </section>
-
-      {/* Logo sobre a base do hero */}
-      <div className="relative z-10 -mt-12 flex justify-center">
-        <AssetImage
-          src="/assets/brand/logo-jose-2-anos.png"
-          alt={`${EVENT.childName} ${EVENT.age} anos`}
-          displayWidth={250}
-          priority
-          className="drop-shadow-[0_8px_14px_rgba(75,46,23,0.3)]"
-        />
-      </div>
 
       <section className="relative z-10 flex flex-1 flex-col gap-4 bg-gradient-to-b from-cream/0 via-cream/95 to-cream px-5 pb-8 pt-1">
         <Reveal className="text-center">

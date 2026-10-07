@@ -37,6 +37,7 @@ export const ASSET_REGISTRY = {
   "/assets/illustrations/shopping.png": { width: 512, height: 512, crop: [199, 197, 300, 291] },
   "/assets/illustrations/success.png": { width: 512, height: 512, crop: [206, 198, 316, 296] },
   "/assets/jose/jose-avatar.webp": { width: 640, height: 640, crop: [0, 0, 640, 640] },
+  "/assets/jose/jose-hero.webp": { width: 1122, height: 1402, crop: [67, 7, 1053, 1395] },
   "/assets/jose/jose-pointing-cutout.png": { width: 667, height: 1230, crop: [15, 20, 500, 1210] },
   "/assets/jose/jose-pointing-source.webp": { width: 1200, height: 1600, crop: [0, 0, 1200, 1600] },
   "/assets/jose/jose-portrait.webp": { width: 1200, height: 1600, crop: [0, 0, 1200, 1600] },
