@@ -16,7 +16,7 @@ export interface CartLine {
   quantity: number;
   available: number;
   status: GiftStatus;
-  /** quantidade pedida maior do que o disponível agora */
+  /** quantidade pedida maior do que o disponível para este convidado */
   exceedsAvailability: boolean;
 }
 
@@ -26,7 +26,7 @@ export async function getCart(db: Db, guestId: string, now = new Date()) {
     include: { items: { include: { gift: true }, orderBy: { id: "asc" } } },
   });
   const items = cart?.items ?? [];
-  const holds = await getGiftHolds(db, now, items.map((i) => i.giftId));
+  const holds = await getGiftHolds(db, now, { giftIds: items.map((i) => i.giftId), guestId });
   const lines: CartLine[] = items.map((item) => {
     const { available, status } = computeGiftAvailability(item.gift, holds.get(item.giftId));
     return {
@@ -58,19 +58,25 @@ function assertQuantity(quantity: number) {
   }
 }
 
+function unavailableMessage(status: GiftStatus) {
+  if (status === "PURCHASED") return "Você já presenteou este item.";
+  if (status === "RESERVED") return "Você já reservou este presente. Conclua o pagamento do seu pedido.";
+  return "Este presente não está disponível.";
+}
+
 /** Adiciona ao carrinho validando a disponibilidade atual (a garantia real acontece no checkout). */
 export async function addToCart(db: Db, guestId: string, giftId: string, quantity: number, now = new Date()) {
   assertQuantity(quantity);
   const gift = await db.gift.findUnique({ where: { id: giftId } });
   if (!gift || !gift.active) throw new DomainError("GIFT_NOT_FOUND", "Este presente não está mais na lista.");
-  const holds = await getGiftHolds(db, now, [giftId]);
-  const { available } = computeGiftAvailability(gift, holds.get(giftId));
+  const holds = await getGiftHolds(db, now, { giftIds: [giftId], guestId });
+  const { available, status } = computeGiftAvailability(gift, holds.get(giftId));
   const cart = await ensureCart(db, guestId);
   const existing = await db.cartItem.findUnique({ where: { cartId_giftId: { cartId: cart.id, giftId } } });
   const desired = (existing?.quantity ?? 0) + quantity;
-  if (available <= 0) throw new DomainError("UNAVAILABLE", "Este presente já foi reservado ou presenteado.");
+  if (available <= 0) throw new DomainError("UNAVAILABLE", unavailableMessage(status));
   if (desired > available) {
-    throw new DomainError("NOT_ENOUGH_STOCK", `Só ${available === 1 ? "resta 1 unidade" : `restam ${available} unidades`} deste presente.`);
+    throw new DomainError("NOT_ENOUGH_STOCK", `Cada convidado pode dar até ${available === 1 ? "1 unidade" : `${available} unidades`} deste presente.`);
   }
   await db.cartItem.upsert({
     where: { cartId_giftId: { cartId: cart.id, giftId } },

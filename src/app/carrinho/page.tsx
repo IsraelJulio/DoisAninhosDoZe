@@ -60,6 +60,7 @@ export default async function CarrinhoPage() {
                 unitPriceInCents: line.unitPriceInCents,
                 quantity: line.quantity,
                 available: line.available,
+                status: line.status,
                 exceedsAvailability: line.exceedsAvailability,
                 image: <GiftImage imageUrl={line.imageUrl} alt={line.title} size={80} />,
               }))}

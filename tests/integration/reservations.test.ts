@@ -29,7 +29,7 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     await resetDb(db);
   });
 
-  it("duas pessoas tentando reservar o último item ao mesmo tempo: só uma consegue", async () => {
+  it("duas pessoas reservando o mesmo presente ao mesmo tempo: as duas conseguem", async () => {
     for (let round = 0; round < 10; round++) {
       await resetDb(db);
       const gift = await createGift(db, { stockQuantity: 1 });
@@ -42,25 +42,37 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
         createReservationFromCart(db, bia.id, { now: T0 }),
       ]);
 
-      const fulfilled = results.filter((r) => r.status === "fulfilled");
-      const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
-      expect(fulfilled).toHaveLength(1);
-      expect(rejected).toHaveLength(1);
-      expect(rejected[0]!.reason).toBeInstanceOf(DomainError);
-      expect((rejected[0]!.reason as DomainError).code).toBe("UNAVAILABLE");
-      expect(await db.order.count({ where: { status: "RESERVED" } })).toBe(1);
+      expect(results.map((r) => r.status)).toEqual(["fulfilled", "fulfilled"]);
+      expect(await db.order.count({ where: { status: "RESERVED" } })).toBe(2);
     }
   });
 
-  it("estoque 3 com 6 compradores simultâneos: exatamente 3 reservas", async () => {
+  it("presente reservado fica indisponível só para quem reservou", async () => {
     const gift = await createGift(db, { stockQuantity: 3 });
     const guests = await Promise.all(Array.from({ length: 6 }, (_, i) => createGuest(db, `G${i}`)));
     for (const g of guests) await putInCart(db, g.id, gift.id);
 
     const results = await Promise.allSettled(guests.map((g) => createReservationFromCart(db, g.id, { now: T0 })));
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
-    const view = await getPublicGift(db, gift.id, T0);
-    expect(view).toMatchObject({ available: 0, status: "RESERVED" });
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(6);
+    expect(await getPublicGift(db, gift.id, T0, guests[0]!.id)).toMatchObject({ available: 0, status: "RESERVED" });
+    const outsider = await createGuest(db, "Novo");
+    expect(await getPublicGift(db, gift.id, T0, outsider.id)).toMatchObject({ available: 3, status: "AVAILABLE" });
+    expect(await getPublicGift(db, gift.id, T0)).toMatchObject({ status: "AVAILABLE" });
+
+    // quem já reservou não consegue colocar o presente no carrinho de novo
+    await expect(addToCart(db, guests[0]!.id, gift.id, 1, at(1))).rejects.toMatchObject({ code: "UNAVAILABLE" });
+  });
+
+  it("checkout com presente que o convidado já tem aguardando pagamento é recusado", async () => {
+    const gift = await createGift(db);
+    const ana = await createGuest(db);
+    await putInCart(db, ana.id, gift.id);
+    const order = await createReservationFromCart(db, ana.id, { now: T0 });
+    await reportPayment(db, ana.id, order.id, at(1));
+    await putInCart(db, ana.id, gift.id);
+    const error = await createReservationFromCart(db, ana.id, { now: at(2) }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(DomainError);
+    expect((error as DomainError).code).toBe("UNAVAILABLE");
   });
 
   it("carrinhos cruzados (A+B vs B+A) não causam deadlock", async () => {
@@ -100,16 +112,16 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     expect(reloaded.totalInCents).toBe(38970);
   });
 
-  it("reserva expirada libera o presente para outra pessoa", async () => {
+  it("reserva expirada volta a liberar o presente para quem reservou", async () => {
     const gift = await createGift(db, { stockQuantity: 1 });
-    const [ana, bia] = await Promise.all([createGuest(db), createGuest(db)]);
+    const ana = await createGuest(db);
     await putInCart(db, ana.id, gift.id);
     await createReservationFromCart(db, ana.id, { now: T0 });
 
-    await putInCart(db, bia.id, gift.id);
-    await expect(createReservationFromCart(db, bia.id, { now: at(29) })).rejects.toMatchObject({ code: "UNAVAILABLE" });
-    expect((await getPublicGift(db, gift.id, at(31)))?.status).toBe("AVAILABLE");
-    await expect(createReservationFromCart(db, bia.id, { now: at(31) })).resolves.toBeTruthy();
+    expect((await getPublicGift(db, gift.id, at(29), ana.id))?.status).toBe("RESERVED");
+    expect((await getPublicGift(db, gift.id, at(31), ana.id))?.status).toBe("AVAILABLE");
+    await putInCart(db, ana.id, gift.id);
+    await expect(createReservationFromCart(db, ana.id, { now: at(31) })).resolves.toBeTruthy();
   });
 
   it("'Já fiz o pagamento' dentro do prazo segura o presente além dos 30 minutos", async () => {
@@ -123,23 +135,37 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     expect(updated.status).toBe("AWAITING_PAYMENT_CONFIRMATION");
     expect(updated.payment?.status).toBe("AWAITING_CONFIRMATION");
 
-    // muito depois do prazo, continua indisponível e não expira na limpeza
+    // muito depois do prazo, continua indisponível para a Ana e não expira na limpeza
     expect(await expireStaleReservations(db, at(240))).toBe(0);
+    await putInCart(db, ana.id, gift.id);
+    await expect(createReservationFromCart(db, ana.id, { now: at(240) })).rejects.toMatchObject({ code: "UNAVAILABLE" });
+    // outra pessoa pode dar o mesmo presente
     await putInCart(db, bia.id, gift.id);
-    await expect(createReservationFromCart(db, bia.id, { now: at(240) })).rejects.toMatchObject({ code: "UNAVAILABLE" });
+    await expect(createReservationFromCart(db, bia.id, { now: at(240) })).resolves.toBeTruthy();
     // idempotente
     await expect(reportPayment(db, ana.id, order.id, at(241))).resolves.toBe("AWAITING");
   });
 
-  it("'Já fiz o pagamento' após o prazo nunca toma o presente de quem reservou depois", async () => {
+  it("'Já fiz o pagamento' após o prazo reativa mesmo que outra pessoa tenha reservado o mesmo presente", async () => {
     const gift = await createGift(db);
     const [ana, bia] = await Promise.all([createGuest(db), createGuest(db)]);
     await putInCart(db, ana.id, gift.id);
     const order = await createReservationFromCart(db, ana.id, { now: T0 });
     await putInCart(db, bia.id, gift.id);
     const biaOrder = await createReservationFromCart(db, bia.id, { now: at(31) });
-    await expect(reportPayment(db, ana.id, order.id, at(32))).resolves.toBe("LATE_UNAVAILABLE");
+    await expect(reportPayment(db, ana.id, order.id, at(32))).resolves.toBe("AWAITING");
     expect((await db.order.findUniqueOrThrow({ where: { id: biaOrder.id } })).status).toBe("RESERVED");
+  });
+
+  it("'Já fiz o pagamento' após o prazo não duplica se o convidado já reservou o presente de novo", async () => {
+    const gift = await createGift(db);
+    const ana = await createGuest(db);
+    await putInCart(db, ana.id, gift.id);
+    const old = await createReservationFromCart(db, ana.id, { now: T0 });
+    await putInCart(db, ana.id, gift.id);
+    const fresh = await createReservationFromCart(db, ana.id, { now: at(31) });
+    await expect(reportPayment(db, ana.id, old.id, at(32))).resolves.toBe("LATE_UNAVAILABLE");
+    expect((await db.order.findUniqueOrThrow({ where: { id: fresh.id } })).status).toBe("RESERVED");
   });
 
   it("convidado não consegue informar pagamento de pedido alheio", async () => {
@@ -162,7 +188,9 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     expect(updated.status).toBe("PURCHASED");
     expect(updated.payment).toMatchObject({ status: "CONFIRMED" });
     expect(updated.payment?.confirmedAt).toBeTruthy();
-    expect((await getPublicGift(db, gift.id, at(61)))?.status).toBe("PURCHASED");
+    expect((await getPublicGift(db, gift.id, at(61), guest.id))?.status).toBe("PURCHASED");
+    const other = await createGuest(db);
+    expect((await getPublicGift(db, gift.id, at(61), other.id))?.status).toBe("AVAILABLE");
     expect(await db.adminAuditLog.count({ where: { entityId: order.id, action: "PAYMENT_CONFIRMED" } })).toBe(1);
 
     // confirmar de novo é idempotente; cancelar depois não é permitido
@@ -179,7 +207,7 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     await cancelOrderByAdmin(db, order.id, at(90));
 
     expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe("CANCELLED");
-    expect((await getPublicGift(db, gift.id, at(91)))?.status).toBe("AVAILABLE");
+    expect((await getPublicGift(db, gift.id, at(91), guest.id))?.status).toBe("AVAILABLE");
   });
 
   it("não confirma reserva expirada sem pagamento informado", async () => {
@@ -215,7 +243,7 @@ describe.skipIf(!hasTestDb)("reservas e pedidos (PostgreSQL real)", () => {
     const cart = await getCart(db, guest.id, at(6));
     expect(cart.lines).toHaveLength(1);
     expect(cart.lines[0]!.quantity).toBe(2);
-    expect((await getPublicGift(db, gift.id, at(6)))?.available).toBe(2);
+    expect((await getPublicGift(db, gift.id, at(6), guest.id))?.available).toBe(2);
   });
 
   it("addToCart respeita disponibilidade e carrinho vazio não reserva", async () => {

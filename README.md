@@ -124,7 +124,7 @@ Entidades principais (`prisma/schema.prisma`):
 - `Order` (`status`, totais, `pixTxid` único, `reservationExpiresAt`) · `OrderItem` (snapshots de título/preço/imagem)
 - `Payment` (1:1 com Order, `pixPayload`, `status`, `confirmedAt`) · `AdminAuditLog` · `Event` (tempo de reserva configurável)
 
-Dinheiro é sempre inteiro em centavos (`formatBRL()` para exibir), com `CHECK` constraints no banco. **O status do presente não é armazenado**: Disponível / Reservado / Presenteado é derivado do estoque e dos pedidos ativos, então nunca fica inconsistente.
+Dinheiro é sempre inteiro em centavos (`formatBRL()` para exibir), com `CHECK` constraints no banco. **O status do presente não é armazenado**: ele é derivado dos pedidos ativos **do próprio convidado**, então nunca fica inconsistente. Vários convidados podem dar o mesmo presente; quando um convidado reserva ou paga um item, ele fica indisponível apenas para esse convidado ("Reservado por você" / "Você presenteou"). `stockQuantity` é o máximo de unidades que cada convidado pode levar (0 = indisponível).
 
 ## Reservas e concorrência
 
@@ -134,15 +134,15 @@ RESERVED ──"Já fiz o pagamento" (dentro do prazo)──▶ AWAITING_PAYMENT
    └── cancelada ──▶ CANCELLED ◀── admin rejeita ── AWAITING_PAYMENT_CONFIRMATION
 ```
 
-- O checkout roda em **uma transação** que trava as linhas dos presentes com `SELECT … FOR UPDATE` (em ordem de id, sem deadlock). Ele recalcula a disponibilidade já com a trava e só então cria o pedido. Uma segunda pessoa espera o commit e vê o estoque atualizado.
-- A disponibilidade conta pedidos `PURCHASED` + `AWAITING_PAYMENT_CONFIRMATION` + `RESERVED` com `reservationExpiresAt > agora`. Reservas vencidas deixam de contar na hora (expiração "preguiçosa", sem cron).
+- O checkout roda em **uma transação** com advisory lock do convidado e `SELECT … FOR SHARE` nos presentes (em ordem de id). Convidados diferentes não se bloqueiam, mas uma edição do admin espera o pedido terminar. A disponibilidade é recalculada dentro da transação antes de criar o pedido.
+- A disponibilidade de um presente para um convidado considera os pedidos **dele** em `PURCHASED` + `AWAITING_PAYMENT_CONFIRMATION` + `RESERVED` com `reservationExpiresAt > agora`. Reservas vencidas deixam de contar na hora (expiração "preguiçosa", sem cron).
 - O "Já fiz o pagamento" é um `UPDATE` condicional (`status = RESERVED AND reservationExpiresAt > agora`). Quem decide o prazo é o servidor; o contador da tela é só apresentação.
 - Depois de informado, o pagamento **não expira**: só o admin confirma ou cancela.
 - Operações do mesmo convidado (clique duplo, duas abas, renovação × "já paguei") são serializadas por um advisory lock por convidado, sempre tomado antes das travas dos presentes, o que evita deadlocks. Reenviar o checkout com o carrinho vazio devolve a reserva ativa (idempotente).
-- "Já fiz o pagamento" **depois** do prazo: se os presentes continuam livres, a reserva é reativada. Se já foram para outra pessoa, nada é vendido em dobro: o aviso fica registrado e aparece em **Admin → Pagamentos → Pendentes** como "Pix informado depois que a reserva expirou", para o admin devolver o valor ou combinar outro presente e marcar como resolvido.
-- Confirmar e cancelar no admin são idempotentes (clique duplo não duplica auditoria nem gera erro). Já o estoque não pode ser reduzido abaixo das unidades reservadas ou presenteadas.
+- "Já fiz o pagamento" **depois** do prazo: se os presentes continuam disponíveis para o convidado, a reserva é reativada. Se não (presente desativado ou o convidado já o colocou em outro pedido), nada é duplicado: o aviso fica registrado e aparece em **Admin → Pagamentos → Pendentes** como "Pix informado depois que a reserva expirou", para o admin devolver o valor ou combinar outro presente e marcar como resolvido.
+- Confirmar e cancelar no admin são idempotentes (clique duplo não duplica auditoria nem gera erro). O admin vê, por presente, o total de unidades reservadas e presenteadas por todos os convidados.
 - Preço e total sempre vêm do banco. O navegador envia apenas `giftId` e quantidade.
-- Teste: `tests/integration/reservations.test.ts` dispara duas reservas simultâneas do último item (10 rodadas) e 6 compradores para estoque 3. Validado também removendo o `FOR UPDATE`: os testes falham, como esperado.
+- Teste: `tests/integration/reservations.test.ts` dispara reservas simultâneas do mesmo presente por convidados diferentes (todas passam) e verifica que o presente fica indisponível só para quem reservou.
 
 ## Pix
 

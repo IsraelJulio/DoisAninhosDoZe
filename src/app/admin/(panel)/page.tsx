@@ -26,8 +26,8 @@ export default async function AdminOverviewPage() {
 
       <section aria-label="Presentes e pagamentos" className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatCard label="Presentes disponíveis" value={d.gifts.available} hint={`de ${d.gifts.total} na lista`} icon={<Gift className="size-6" />} />
-        <StatCard label="Reservados" value={d.gifts.reserved} icon={<Lock className="size-6" />} />
-        <StatCard label="Presenteados" value={d.gifts.purchased} icon={<CheckCircle2 className="size-6" />} />
+        <StatCard label="Reservados" value={d.gifts.reserved} hint="unidades" icon={<Lock className="size-6" />} />
+        <StatCard label="Presenteados" value={d.gifts.purchased} hint="unidades" icon={<CheckCircle2 className="size-6" />} />
         <Link href="/admin/pagamentos" className="contents">
           <StatCard label="Pagamentos pendentes" value={d.pendingPayments} hint="aguardando sua confirmação" icon={<Clock className="size-6" />} tone={d.pendingPayments ? "highlight" : "default"} testId="stat-pending" />
         </Link>

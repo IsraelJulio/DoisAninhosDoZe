@@ -26,7 +26,8 @@ export async function generateMetadata({ params }: PageProps<"/presentes/[id]">)
 export default async function GiftDetailPage({ params }: PageProps<"/presentes/[id]">) {
   const { id } = await params;
   const db = getDb();
-  const [gift, guest] = await Promise.all([getPublicGift(db, id), getCurrentGuest()]);
+  const guest = await getCurrentGuest();
+  const gift = await getPublicGift(db, id, new Date(), guest?.id);
   if (!gift) notFound();
   const cartCount = guest ? await getCartItemCount(db, guest.id) : 0;
   const available = gift.status === "AVAILABLE";
@@ -67,7 +68,7 @@ export default async function GiftDetailPage({ params }: PageProps<"/presentes/[
         <div className="paper-card flex items-center gap-3 bg-sand/30 px-4 py-3">
           <Package className="size-6 shrink-0 text-wood" aria-hidden />
           <p className="flex-1 text-sm leading-tight">
-            <span className="block font-bold">Quantidade disponível</span>
+            <span className="block font-bold">Quantidade disponível para você</span>
             <span className="font-display text-lg font-semibold">
               {gift.available} {gift.available === 1 ? "unidade" : "unidades"}
             </span>
@@ -81,11 +82,15 @@ export default async function GiftDetailPage({ params }: PageProps<"/presentes/[
           <div className="paper-card flex flex-col items-center gap-2 p-5 text-center">
             <AssetImage src="/assets/mascots/lion.png" displayWidth={70} />
             <p className="font-display text-lg font-semibold">
-              {gift.status === "PURCHASED" ? "Este presente já foi dado ao José!" : "Este presente está reservado agora."}
+              {gift.status === "PURCHASED"
+                ? "Você já deu este presente ao José!"
+                : gift.status === "RESERVED"
+                  ? "Você já reservou este presente."
+                  : "Este presente não está disponível."}
             </p>
             <p className="text-sm text-ink-soft">
               {gift.status === "RESERVED"
-                ? "Se a reserva não for concluída, ele volta para a lista em alguns minutos."
+                ? "Conclua o pagamento do seu pedido. Se a reserva vencer, ele volta a ficar disponível para você."
                 : "Que tal escolher outro item da lista?"}
             </p>
             <ButtonLink href="/presentes" variant="secondary" block>

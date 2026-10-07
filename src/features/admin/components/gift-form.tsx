@@ -123,7 +123,7 @@ export function GiftForm({ initial, categories, allowImport }: { initial?: GiftF
           <Field label="Preço (R$)" htmlFor="price" error={errors.price} hint="Valor do Pix">
             <input id="price" name="price" inputMode="decimal" value={values.price} onChange={(e) => set("price", e.target.value)} placeholder="149,90" className={inputClasses} required />
           </Field>
-          <Field label="Quantidade" htmlFor="stockQuantity" error={errors.stockQuantity}>
+          <Field label="Máx. por convidado" htmlFor="stockQuantity" error={errors.stockQuantity} hint="0 = indisponível">
             <input id="stockQuantity" name="stockQuantity" type="number" inputMode="numeric" min={0} max={100} value={values.stockQuantity} onChange={(e) => set("stockQuantity", Number(e.target.value))} className={inputClasses} />
           </Field>
         </div>

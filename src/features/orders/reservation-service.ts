@@ -31,16 +31,21 @@ async function lockGuest(tx: Tx, guestId: string) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${guestId}, 0))`;
 }
 
-/** Trava as linhas dos presentes (ordem de id) e calcula a disponibilidade já com a trava. */
-async function lockGiftsWithAvailability(tx: Tx, giftIds: string[], now: Date) {
+/**
+ * Lê os presentes (ordem de id) e calcula a disponibilidade PARA ESTE CONVIDADO.
+ * FOR SHARE: convidados diferentes não se bloqueiam (vários podem dar o mesmo presente),
+ * mas uma edição do admin (preço, desativar) espera o pedido terminar e vice-versa.
+ * Deve rodar depois de lockGuest, que serializa os pedidos do próprio convidado.
+ */
+async function lockGiftsWithAvailability(tx: Tx, guestId: string, giftIds: string[], now: Date) {
   const ids = [...new Set(giftIds)].sort();
   const locked = await tx.$queryRaw<LockedGift[]>`
     SELECT id, title, "imageUrl", "priceInCents", "stockQuantity", active
     FROM "Gift"
     WHERE id = ANY(${ids}::text[])
     ORDER BY id
-    FOR UPDATE`;
-  const holds = await getGiftHolds(tx, now, ids);
+    FOR SHARE`;
+  const holds = await getGiftHolds(tx, now, { giftIds: ids, guestId });
   return new Map(locked.map((g) => [g.id, { gift: g, available: computeGiftAvailability(g, holds.get(g.id)).available }]));
 }
 
@@ -49,11 +54,11 @@ const ORDER_INCLUDE = { items: true, payment: true } as const;
 /**
  * Cria uma reserva temporária a partir do carrinho do convidado.
  *
- * Concorrência:
- *  - trava por convidado (advisory lock) → clique duplo/duas abas não criam pedidos duplicados;
- *  - SELECT ... FOR UPDATE nas linhas dos presentes (ordem de id) → uma segunda transação que
- *    queira os mesmos presentes espera o commit da primeira e já enxerga o pedido criado, então
- *    duas pessoas nunca reservam a mesma última unidade.
+ * Disponibilidade por convidado: um presente que ele já tem em reserva ativa, aguardando
+ * confirmação ou pago fica indisponível só para ele; outros convidados podem dar o mesmo item.
+ *
+ * Concorrência: trava por convidado (advisory lock) → clique duplo/duas abas não criam pedidos
+ * duplicados nem deixam o mesmo convidado reservar o mesmo presente duas vezes.
  *
  * Idempotente: com o carrinho vazio e uma reserva ativa, devolve a reserva existente.
  * Se havia reserva ativa e o carrinho tem itens novos, a reserva é renovada com tudo junto.
@@ -93,7 +98,7 @@ export async function createReservationFromCart(
       }
       const items = active.length ? await tx.cartItem.findMany({ where: { cartId: cart.id } }) : cart.items;
 
-      const giftsById = await lockGiftsWithAvailability(tx, items.map((i) => i.giftId), now);
+      const giftsById = await lockGiftsWithAvailability(tx, guestId, items.map((i) => i.giftId), now);
       const unavailable: UnavailableItem[] = [];
       for (const item of items) {
         const entry = giftsById.get(item.giftId);
@@ -110,8 +115,8 @@ export async function createReservationFromCart(
         throw new DomainError(
           "UNAVAILABLE",
           unavailable.length === 1
-            ? `Ops! "${unavailable[0]!.title}" não está mais disponível nessa quantidade.`
-            : "Ops! Alguns presentes não estão mais disponíveis nessa quantidade.",
+            ? `Ops! "${unavailable[0]!.title}" não está disponível para você nessa quantidade.`
+            : "Ops! Alguns presentes não estão disponíveis para você nessa quantidade.",
           unavailable,
         );
       }
@@ -157,9 +162,10 @@ export type ReportResult = "AWAITING" | "LATE_UNAVAILABLE" | "CLOSED_REPORTED";
 /**
  * "Já fiz o pagamento". O prazo é decidido pelo servidor, nunca pelo contador da tela.
  *  - reserva válida → AWAITING_PAYMENT_CONFIRMATION (não expira mais; só o admin decide);
- *  - reserva vencida, mas os presentes continuam livres → reativa e fica AWAITING;
- *  - reserva vencida e presente já reservado por outra pessoa → NÃO vende em dobro: o aviso
- *    fica registrado (Payment AWAITING_CONFIRMATION num pedido EXPIRED) para o admin resolver;
+ *  - reserva vencida, mas os presentes continuam disponíveis para o convidado → reativa e fica AWAITING;
+ *  - reserva vencida e presente indisponível para ele (desativado, ou já está em outro pedido
+ *    dele) → NÃO duplica: o aviso fica registrado (Payment AWAITING_CONFIRMATION num pedido
+ *    EXPIRED) para o admin resolver;
  *  - pedido cancelado → o aviso também fica registrado (o convidado pode ter pago mesmo assim).
  * Idempotente para pedidos já aguardando/confirmados.
  */
@@ -185,7 +191,7 @@ export async function reportPayment(db: Db, guestId: string, orderId: string, no
     }
 
     if (order.status === "RESERVED" || order.status === "EXPIRED") {
-      const gifts = await lockGiftsWithAvailability(tx, order.items.map((i) => i.giftId), now);
+      const gifts = await lockGiftsWithAvailability(tx, guestId, order.items.map((i) => i.giftId), now);
       const stillAvailable = order.items.every((item) => {
         const entry = gifts.get(item.giftId);
         return Boolean(entry && entry.gift.active && entry.available >= item.quantity);

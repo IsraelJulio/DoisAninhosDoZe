@@ -4,6 +4,7 @@ import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m } from "fram
 import { Trash2 } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 import { Stepper } from "@/components/ui/stepper";
+import type { GiftStatus } from "@/features/gifts/gift-availability";
 import { formatBRL } from "@/lib/money";
 import { removeFromCartAction, updateCartQuantityAction } from "../actions";
 import { MAX_QUANTITY_PER_ITEM } from "../cart-constants";
@@ -14,6 +15,7 @@ export interface CartLineView {
   unitPriceInCents: number;
   quantity: number;
   available: number;
+  status: GiftStatus;
   exceedsAvailability: boolean;
   image: ReactNode;
 }
@@ -86,8 +88,10 @@ function CartLineItem({ line }: { line: CartLineView }) {
         {line.exceedsAvailability && (
           <p className="text-xs font-bold text-[#b03a2e]" role="alert">
             {line.available === 0
-              ? "Este presente foi reservado por outra pessoa. Remova-o para continuar."
-              : `Só ${line.available === 1 ? "resta 1 unidade" : `restam ${line.available} unidades`}. Ajuste a quantidade.`}
+              ? line.status === "INACTIVE"
+                ? "Este presente não está mais disponível. Remova-o para continuar."
+                : "Você já reservou ou presenteou este item. Remova-o para continuar."
+              : `Cada convidado pode dar até ${line.available === 1 ? "1 unidade" : `${line.available} unidades`}. Ajuste a quantidade.`}
           </p>
         )}
         {error && (

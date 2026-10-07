@@ -90,11 +90,7 @@ export async function saveGiftAction(_prev: ActionState, formData: FormData): Pr
     if (id) await updateGift(db, id, parsed.data);
     else await createGift(db, parsed.data);
   } catch (error) {
-    if (isDomainError(error)) {
-      return error.code === "STOCK_BELOW_COMMITTED"
-        ? { fieldErrors: { stockQuantity: error.message }, error: error.message }
-        : { error: error.message };
-    }
+    if (isDomainError(error)) return { error: error.message };
     throw error;
   }
   revalidatePath("/admin", "layout");

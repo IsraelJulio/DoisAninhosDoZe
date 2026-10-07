@@ -21,15 +21,19 @@ export async function getDashboard(db: Db, now = new Date()) {
     }),
   ]);
 
-  const giftStatus = { AVAILABLE: 0, RESERVED: 0, PURCHASED: 0 };
+  // Vários convidados podem dar o mesmo presente: reservados/presenteados contam unidades.
+  let available = 0;
+  let reserved = 0;
+  let purchased = 0;
   for (const gift of gifts) {
-    const { status } = computeGiftAvailability(gift, holds.get(gift.id));
-    if (status in giftStatus) giftStatus[status as keyof typeof giftStatus] += 1;
+    if (computeGiftAvailability(gift).status === "AVAILABLE") available += 1;
+    reserved += holds.get(gift.id)?.reserved ?? 0;
+    purchased += holds.get(gift.id)?.purchased ?? 0;
   }
 
   return {
     rsvp,
-    gifts: { total: gifts.length, available: giftStatus.AVAILABLE, reserved: giftStatus.RESERVED, purchased: giftStatus.PURCHASED },
+    gifts: { total: gifts.length, available, reserved, purchased },
     pendingPayments,
     confirmedOrders: confirmedValue._count._all,
     confirmedValueInCents: confirmedValue._sum.totalInCents ?? 0,
@@ -99,7 +103,7 @@ export async function listGiftsForAdmin(db: Db, now = new Date()) {
   const hasOrders = new Set(withOrders.map((o) => o.giftId));
   return gifts.map((gift) => ({
     ...gift,
-    ...computeGiftAvailability(gift, holds.get(gift.id)),
+    ...computeGiftAvailability(gift), // sem convidado: só ativo/inativo; os totais estão em holds
     holds: holds.get(gift.id) ?? { purchased: 0, reserved: 0 },
     hasOrders: hasOrders.has(gift.id),
   }));

@@ -44,7 +44,7 @@ describe.skipIf(!hasTestDb)("auditoria: reservas", () => {
       expect(results.map((r) => r.status)).toEqual(["fulfilled", "fulfilled"]);
       const active = await db.order.findMany({ where: { guestId: guest.id, status: "RESERVED" } });
       expect(active).toHaveLength(1);
-      expect((await getPublicGift(db, gift.id, T0))?.available).toBe(1);
+      expect((await getPublicGift(db, gift.id, T0, guest.id))?.status).toBe("RESERVED");
     }
   });
 
@@ -70,13 +70,13 @@ describe.skipIf(!hasTestDb)("auditoria: reservas", () => {
     expect(updated.payment?.status).toBe("AWAITING_CONFIRMATION");
   });
 
-  it("pagamento informado após expirar e o presente já foi para outra pessoa: fica registrado para o admin", async () => {
+  it("pagamento informado após expirar e o convidado já reservou o presente de novo: fica registrado para o admin", async () => {
     const gift = await createGift(db, { stockQuantity: 1 });
-    const [ana, bia] = await Promise.all([createGuest(db, "Ana"), createGuest(db, "Bia")]);
+    const ana = await createGuest(db, "Ana");
     await putInCart(db, ana.id, gift.id);
     const late = await createReservationFromCart(db, ana.id, { now: T0 });
-    await putInCart(db, bia.id, gift.id);
-    await createReservationFromCart(db, bia.id, { now: at(31) }); // estoque passa para a Bia
+    await putInCart(db, ana.id, gift.id);
+    await createReservationFromCart(db, ana.id, { now: at(31) }); // nova reserva da Ana com o mesmo presente
 
     const result = await reportPayment(db, ana.id, late.id, at(32));
     expect(result).toBe("LATE_UNAVAILABLE");
@@ -84,8 +84,8 @@ describe.skipIf(!hasTestDb)("auditoria: reservas", () => {
     expect(updated.status).toBe("EXPIRED");
     expect(updated.paymentReportedAt).toBeTruthy();
     expect(updated.payment?.status).toBe("AWAITING_CONFIRMATION");
-    // presente continua com a Bia (sem venda dupla)
-    expect((await getPublicGift(db, gift.id, at(32)))?.available).toBe(0);
+    // a nova reserva continua valendo (sem duplicar o presente da Ana)
+    expect((await getPublicGift(db, gift.id, at(32), ana.id))?.status).toBe("RESERVED");
 
     // admin vê na aba de pendentes e consegue resolver
     const pending = await listOrdersForAdmin(db, "pending", at(33));
@@ -127,7 +127,7 @@ describe.skipIf(!hasTestDb)("auditoria: reservas", () => {
     await cancelOrderByAdmin(db, order.id, at(2));
     await expect(cancelOrderByAdmin(db, order.id, at(3))).resolves.toBe("ALREADY_CANCELLED");
     await expect(confirmOrderPayment(db, order.id, at(4))).rejects.toMatchObject({ code: "CANNOT_CONFIRM" });
-    expect((await getPublicGift(db, gift.id, at(4)))?.available).toBe(1);
+    expect((await getPublicGift(db, gift.id, at(4), guest.id))?.available).toBe(1);
   });
 
   it("'Tentar novamente' em reserva antiga não duplica itens de uma reserva ativa", async () => {
@@ -165,7 +165,7 @@ describe.skipIf(!hasTestDb)("auditoria: reservas", () => {
     }
   });
 
-  it("estoque nunca fica negativo nem vendido em dobro sob carga mista", async () => {
+  it("vários convidados dão o mesmo presente sob carga mista, uma vez cada", async () => {
     const gift = await createGift(db, { stockQuantity: 2 });
     const guests = await Promise.all(Array.from({ length: 5 }, () => createGuest(db)));
     for (const g of guests) await putInCart(db, g.id, gift.id);
@@ -177,21 +177,20 @@ describe.skipIf(!hasTestDb)("auditoria: reservas", () => {
       where: { giftId: gift.id, order: { status: "PURCHASED" } },
       _sum: { quantity: true },
     });
-    expect(purchased._sum.quantity).toBe(2);
+    expect(purchased._sum.quantity).toBe(5);
     // pagamento sempre igual ao total do pedido
     const mismatched = await db.$queryRaw<{ n: number }[]>`
       SELECT count(*)::int AS n FROM "Payment" p JOIN "Order" o ON o.id = p."orderId" WHERE p."amountInCents" <> o."totalInCents"`;
     expect(mismatched[0]!.n).toBe(0);
   });
 
-  it("admin não consegue reduzir o estoque abaixo do que já está reservado/presenteado", async () => {
+  it("admin pode reduzir o máximo por convidado mesmo com reservas existentes", async () => {
     const gift = await createGift(db, { stockQuantity: 2 });
     const guest = await createGuest(db);
     await putInCart(db, guest.id, gift.id, 2);
     await createReservationFromCart(db, guest.id, { now: new Date() });
     const input = giftFormSchema.parse({ title: "Pista", price: "10", category: "Brinquedos", stockQuantity: "1", active: "on" });
-    await expect(updateGift(db, gift.id, input)).rejects.toMatchObject({ code: "STOCK_BELOW_COMMITTED" });
-    await expect(updateGift(db, gift.id, { ...input, stockQuantity: 3 })).resolves.toBeTruthy();
+    await expect(updateGift(db, gift.id, input)).resolves.toBeTruthy();
   });
 
   it("editar presente inexistente é erro tratado (não 500)", async () => {

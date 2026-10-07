@@ -42,7 +42,7 @@ export default async function AdminGiftsPage({ searchParams }: PageProps<"/admin
                   {gift.active ? <GiftStatusBadge status={gift.status} /> : <Badge>Desativado</Badge>}
                 </div>
                 <p className="text-sm text-ink-soft">
-                  <strong className="text-forest-dark">{formatBRL(gift.priceInCents)}</strong> • {gift.category} • estoque {gift.stockQuantity}
+                  <strong className="text-forest-dark">{formatBRL(gift.priceInCents)}</strong> • {gift.category} • até {gift.stockQuantity} por convidado
                   {gift.holds.reserved > 0 && ` • ${gift.holds.reserved} reservado(s)`}
                   {gift.holds.purchased > 0 && ` • ${gift.holds.purchased} presenteado(s)`}
                   {gift.source && ` • ${gift.source}`}

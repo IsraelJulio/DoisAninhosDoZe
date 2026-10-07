@@ -24,7 +24,7 @@ export default async function PresentesPage({ searchParams }: PageProps<"/presen
   const db = getDb();
   const guest = await getCurrentGuest();
   const [gifts, categories, cartCount, trackable] = await Promise.all([
-    listPublicGifts(db, new Date(), category),
+    listPublicGifts(db, new Date(), category, guest?.id),
     listGiftCategories(db),
     guest ? getCartItemCount(db, guest.id) : 0,
     guest ? getLatestTrackableOrder(db, guest.id) : null,

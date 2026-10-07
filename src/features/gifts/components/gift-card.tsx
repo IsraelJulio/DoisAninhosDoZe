@@ -36,7 +36,7 @@ export function GiftCard({ gift, priority }: { gift: GiftView; priority?: boolea
             className="flex min-h-10 items-center justify-center rounded-[var(--radius-button)] bg-ink/8 text-sm font-bold text-ink-soft"
             aria-label={`${gift.title}: indisponível`}
           >
-            {gift.status === "PURCHASED" ? "Já presenteado" : "Indisponível"}
+            {gift.status === "PURCHASED" ? "Você já presenteou" : gift.status === "RESERVED" ? "Já está no seu pedido" : "Indisponível"}
           </p>
         )}
       </div>

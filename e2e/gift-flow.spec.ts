@@ -56,11 +56,13 @@ test("presente → carrinho → reserva → Pix → já paguei → admin confirm
   await expect(page.getByRole("heading", { name: "Pagamento aguardando confirmação" })).toBeVisible();
   await expect(page.getByText(/confirmado automaticamente/i)).toHaveCount(0);
 
-  // Lista mostra o presente como reservado para outras pessoas
+  // Reservado só para quem comprou; outras pessoas continuam podendo presentear
+  await page.goto("/presentes");
+  await expect(page.getByTestId("gift-card").filter({ hasText: "Bicicleta de Equilíbrio" }).getByText("Reservado por você", { exact: true })).toBeVisible();
   const other = await browser.newContext();
   const otherPage = await other.newPage();
   await otherPage.goto("/presentes");
-  await expect(otherPage.getByTestId("gift-card").filter({ hasText: "Bicicleta de Equilíbrio" }).getByText("Reservado", { exact: true })).toBeVisible();
+  await expect(otherPage.getByTestId("gift-card").filter({ hasText: "Bicicleta de Equilíbrio" }).getByText("Disponível", { exact: true })).toBeVisible();
 
   // Admin confirma
   await otherPage.goto("/admin");
@@ -83,7 +85,7 @@ test("presente → carrinho → reserva → Pix → já paguei → admin confirm
   await page.goto(orderUrl.replace("/pagamento/", "/pedido/"));
   await expect(page.getByRole("heading", { name: "Presente confirmado!" })).toBeVisible();
   await page.goto("/presentes");
-  await expect(page.getByTestId("gift-card").filter({ hasText: "Bicicleta de Equilíbrio" }).getByText("Presenteado", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("gift-card").filter({ hasText: "Bicicleta de Equilíbrio" }).getByText("Você presenteou", { exact: true })).toBeVisible();
 });
 
 test("admin bloqueado sem login", async ({ page }) => {

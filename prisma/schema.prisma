@@ -47,8 +47,8 @@ model Rsvp {
   guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
 }
 
-/// O status exibido (Disponível / Reservado / Presenteado) é DERIVADO de stockQuantity
-/// e dos pedidos ativos — não é armazenado, para nunca ficar inconsistente.
+/// O status exibido é DERIVADO dos pedidos ativos do convidado — não é armazenado. Vários
+/// convidados podem dar o mesmo presente; stockQuantity é o máximo por convidado.
 model Gift {
   id            String   @id @default(cuid())
   title         String
