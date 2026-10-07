@@ -1,0 +1,17 @@
+# Upload via CLI: nunca enviar ambiente local, dados de banco local ou material de referência.
+.env
+.env.*
+!.env.example
+.local-postgres
+.serena
+.claude
+*.tsbuildinfo
+design
+artifacts
+playwright-report
+test-results
+blob-report
+coverage
+src/generated
+scripts/.flow*
+next-env.d.ts

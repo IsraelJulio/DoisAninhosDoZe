@@ -27,3 +27,6 @@ blob-report/
 npm-debug.log*
 .vercel
 scripts/.flow*
+
+# Serena (ferramenta local)
+.serena/
